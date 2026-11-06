@@ -1,0 +1,94 @@
+# Guide complet — tsukiboshi 月星 (v5.8)
+
+Plateformes : Netflix, Crunchyroll, ADN, Disney+, Prime Video.
+Fonctionne avec n'importe quel compte : l'extension utilise le compte connecté dans Chrome.
+
+## Installation
+1. Décompresser le zip, ouvrir `chrome://extensions`
+2. Activer le **Mode développeur** → **Charger l'extension non empaquetée** → choisir ce dossier
+3. Dans `chrome://settings/downloads`, désactiver « Toujours demander où enregistrer les fichiers »
+
+## 1re utilisation (une seule fois)
+Popup de l'extension → **Importer** à côté de chaque plateforme → **Lancer l'import**. La page Historique s'ouvre, l'import démarre seul
+et récupère **tout** l'historique depuis la création du compte. Avec des milliers d'épisodes, ça peut prendre plusieurs minutes
+(10 000 épisodes ≈ 1 minute pour Crunchyroll, fichier Excel ≈ 2 Mo).
+Netflix : refaire l'import pour chaque profil (choisir le profil, puis retourner sur la page Historique).
+
+## Ensuite, tout est automatique et discret
+- **Suivi en direct** : chaque vidéo regardée plus d'1 minute sur ce navigateur est ajoutée (date, heure, temps regardé, durée).
+- **Synchro toutes les 6 h** : l'extension relit l'historique de chaque plateforme importée dans une fenêtre réduite,
+  puis la ferme → récupère aussi ce que tu regardes sur la TV / le téléphone.
+- Le fichier est réécrit sans bulle de téléchargement :
+  `Téléchargements/Tsukiboshi/Tsukiboshi - historique.xlsx`
+
+## Ma liste
+Popup → **Ma liste** : une page avec toutes tes séries et tous tes films en vignettes.
+- Filtres par statut (**En cours**, **Vu**, **Ajouté à la liste**) et par plateforme, recherche (touche `/`), tri.
+- Chaque vignette montre où tu en es (dernier épisode vu) et quand.
+- Clic sur une vignette : statut modifiable, statistiques, bouton pour rouvrir le dernier épisode, liste de tous les épisodes vus.
+- Affiches automatiques (comme Plex), recherchées selon le type du titre (film, série, animé, spectacle) :
+  TMDB (facultatif, clé gratuite à coller dans les réglages), Allociné, IMDb, AniList (animés), iTunes / Apple TV (films), TVmaze (séries).
+  « Affiches : x / y — voir les sources » (sous les filtres) montre quelle source répond ou bloque.
+  Un indicateur en haut de « Ma liste » montre la progression.
+- **Changer l'image** (dans la fiche) : choisir parmi les affiches proposées, ou coller le lien de n'importe quelle image.
+- **+ Ajouter** : met un titre de côté avec le statut « Ajouté à la liste ».
+- Crunchyroll : vraie affiche, nombre d'épisodes vus / total, prochain épisode, progression par saison
+  (infos récupérées après chaque import et rafraîchies à chaque synchro).
+- Statut automatique : tous les épisodes vus = Vu (série en cours de diffusion = En cours « À jour »), sinon En cours ; film = Vu. Un statut choisi à la main est gardé (et repris dans l'onglet *Séries* de l'Excel).
+
+### Ma note, favoris, avis
+- Dans la fiche d'un titre : 1 à 5 étoiles (re-cliquer la même étoile efface la note), ♥ Favori et un avis libre.
+- Les étoiles et le ♥ apparaissent sur la vignette ; filtre **Favoris** et tri **Ma note**.
+- Repris dans l'Excel (feuille « Séries » : Ma note, Favori, Mon avis) et dans la sauvegarde.
+
+### Genres et époque
+- Trouvés automatiquement en tâche de fond : AniList (animés), page Netflix du titre, TVmaze (séries), iTunes (films), ramenés à une liste française (Action, Comédie, Tranche de vie…).
+- Listes **Genre** et **Époque** (années de sortie) à côté du tri ; dans la fiche, un clic sur un genre filtre la liste.
+- Repris dans l'Excel (feuille « Séries » : Genres, Sortie) et dans le Bilan (« Tes genres »).
+
+### À suivre
+En haut de Ma liste : les séries en cours, la plus récente d'abord.
+- **Reprendre** : l'épisode a été arrêté en cours de route, le bouton ▶ le rouvre directement.
+- **Prochain** : l'épisode suivant (Crunchyroll), le bouton ▶ ouvre la page de la série sur la plateforme.
+- La croix retire une série de la rangée jusqu'au prochain épisode regardé.
+
+### Nouveaux épisodes (Crunchyroll)
+- Pour les séries en cours de diffusion que tu suis (regardées ces 4 derniers mois) : vérification toutes les 3 h pendant la synchro discrète.
+- Quand un épisode sort et que tu étais à jour : notification, compteur orange sur l'icône, et la série passe en tête de « À suivre » avec le badge **Nouveau**.
+- Tout disparaît dès que l'épisode est regardé. Réglages → « Alertes nouveaux épisodes » pour couper les notifications.
+
+## Bilan
+Onglet **Bilan** en haut de Ma liste : par année ou depuis le début.
+- Heures regardées, épisodes, séries, films, nombre de soirées.
+- Calendrier (une case par soirée), heures par mois, part de chaque plateforme.
+- Top 10 des séries au temps passé, tes jours et heures préférés, records.
+- Durées : temps réellement regardé quand la plateforme le donne, sinon estimation (23 min par épisode d'animé, 42 min par épisode de série, 1 h 45 par film). Une journée est plafonnée à 14 h.
+
+## Sauvegarde (changer de PC)
+- Une copie automatique est faite chaque jour : Téléchargements / Tsukiboshi / Tsukiboshi - sauvegarde automatique.json.
+- Réglages du popup → **Sauvegarder maintenant** pour une copie datée.
+- Sur le nouveau PC : installer l'extension, puis Réglages → **Restaurer…** et choisir le fichier. Tout est fusionné, rien n'est effacé ni dupliqué.
+
+## Le fichier Excel
+- **Par série** : chaque série / anime avec ses épisodes en dessous (date, heure, temps regardé, progression).
+  Les boutons **1 / 2** et **+ / −** à gauche d'Excel replient ou déplient les séries.
+- **Séries** : une ligne par série (épisodes vus, premier et dernier visionnage, temps total).
+- **Tout** et un onglet par plateforme : liste chronologique complète, avec filtres.
+- **Résumé** : totaux par plateforme.
+
+Les doublons (même épisode vu en direct puis retrouvé dans l'historique) sont fusionnés automatiquement.
+
+## Nouveautés 5.8 (fiabilité)
+- Un site d'affiches qui ne répond pas ne bloque plus la recherche (délai maximal de 15 s par demande).
+- Plus de recherche en boucle quand un site sature.
+- Pendant la lecture, la base n'est plus réécrite toutes les 5 s (toutes les 30 s, et à la fin de l'épisode).
+- Recherche dans Ma liste corrigée avec beaucoup de titres ; « / » s'écrit normalement dans l'avis et le lien d'image.
+- Liens dangereux (javascript:, data:) refusés ; plus d'erreurs dans chrome://extensions après une mise à jour.
+- Clavier : focus qui suit la fiche, « À suivre » accessible, Échap partout. Bouton Bilan dans le popup.
+
+## Limites
+- L'heure exacte n'est connue que pour Netflix et les visionnages suivis en direct ; les autres historiques donnent seulement le jour.
+- Disney+ n'a pas de page d'historique : seuls les visionnages faits sur ce navigateur sont enregistrés.
+- La synchro ne fonctionne que si Chrome est ouvert et que tu es connecté aux sites.
+- Fermer le fichier dans Excel pour qu'il puisse être remplacé.
+- Si un site change son code et qu'un import ne trouve plus rien, l'extension devra être adaptée.

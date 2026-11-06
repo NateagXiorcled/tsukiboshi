@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bilan · tsukiboshi</title>
+<link rel="icon" href="../icons/icon32.png">
+<link rel="stylesheet" href="bilan.css">
+</head>
+<body>
+  <header class="top">
+    <a class="brand" href="../list/list.html">
+      <img src="../icons/logo-small.svg" alt="" class="logo">
+      <span class="word">tsukiboshi</span>
+    </a>
+    <span class="sep"></span>
+    <nav class="tabs"><a href="../list/list.html">Ma liste</a><a class="on" aria-current="page">Bilan</a></nav>
+  </header>
+
+  <main>
+    <div class="period" id="period" role="tablist" aria-label="Période"></div>
+
+    <section class="kpis" id="kpis"></section>
+    <p class="note" id="note"></p>
+
+    <section class="card">
+      <div class="card-head"><h2>Calendrier</h2><p class="sub" id="calSub"></p></div>
+      <div class="cal-scroll"><div class="cal" id="cal"></div></div>
+      <div class="legend-scale"><span>Moins</span><i class="l0"></i><i class="l1"></i><i class="l2"></i><i class="l3"></i><i class="l4"></i><i class="l5"></i><span>Plus</span></div>
+    </section>
+
+    <div class="two">
+      <section class="card">
+        <div class="card-head"><h2 id="barsTitle">Heures par mois</h2></div>
+        <div class="cols" id="months"></div>
+        <details class="table-view"><summary>Voir les chiffres</summary><table id="monthsTable"></table></details>
+      </section>
+      <section class="card">
+        <div class="card-head"><h2>Plateformes</h2><p class="sub">Part du temps regardé</p></div>
+        <ul class="hbars" id="platforms"></ul>
+      </section>
+    </div>
+
+    <section class="card" id="genresCard">
+      <div class="card-head"><h2>Tes genres</h2><p class="sub" id="genresSub">Temps passé par genre</p></div>
+      <ul class="hbars cols2" id="genres"></ul>
+    </section>
+
+    <section class="card">
+      <div class="card-head"><h2>Top 10 des séries</h2><p class="sub">Au temps passé</p></div>
+      <ol class="toplist" id="top"></ol>
+    </section>
+
+    <div class="two">
+      <section class="card">
+        <div class="card-head"><h2>Tes soirées</h2><p class="sub" id="habitsSub"></p></div>
+        <h3 class="mini-title">Par jour de la semaine</h3>
+        <div class="cols small" id="weekdays"></div>
+        <h3 class="mini-title">Par heure de lancement</h3>
+        <div class="cols tiny" id="hours"></div>
+      </section>
+      <section class="card">
+        <div class="card-head"><h2>Records</h2></div>
+        <ul class="records" id="records"></ul>
+      </section>
+    </div>
+
+    <div class="empty" id="empty" hidden>
+      <img src="../icons/logo.svg" alt="">
+      <h2>Pas encore de bilan</h2>
+      <p>Importe ton historique depuis le popup de tsukiboshi.</p>
+    </div>
+  </main>
+  <div class="tip" id="tip" role="tooltip" hidden></div>
+  <script type="module" src="bilan.js"></script>
+</body>
+</html>

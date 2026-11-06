@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Diagnostic · tsukiboshi</title>
+<link rel="icon" href="../icons/icon32.png">
+<link rel="stylesheet" href="diag.css">
+</head>
+<body>
+  <header class="top">
+    <img src="../icons/logo-small.svg" alt="" class="logo">
+    <span class="word">tsukiboshi</span>
+    <span class="sep"></span>
+    <span class="page-name">Diagnostic</span>
+    <span class="ver" id="ver"></span>
+  </header>
+  <main>
+    <section class="card">
+      <div class="head"><h2>Sources des affiches</h2><button class="btn primary" id="testArt">Tester maintenant</button></div>
+      <p class="muted">Interroge chaque site avec un titre connu (Green Lantern, Dexter, Frieren) et affiche sa réponse réelle.</p>
+      <table id="artTable" hidden><thead><tr><th>Source</th><th>État</th><th>Détail</th><th>Temps</th><th></th></tr></thead><tbody></tbody></table>
+    </section>
+
+    <section class="card">
+      <div class="head"><h2>Crunchyroll</h2><button class="btn primary" id="testCr">Tester maintenant</button></div>
+      <p class="muted">Vérifie l'accès aux infos des épisodes (saisons, numéros, progression). Utilise un onglet Crunchyroll ouvert, sinon en ouvre un en arrière-plan quelques secondes. Il faut être connecté à Crunchyroll.</p>
+      <div id="crOut"></div>
+    </section>
+
+    <section class="card">
+      <div class="head"><h2>Erreurs de l'extension</h2><button class="btn secondary" id="clearErr">Effacer</button></div>
+      <ul class="log" id="errors"></ul>
+    </section>
+
+    <section class="card">
+      <div class="head"><h2>Journal</h2></div>
+      <ul class="log" id="journal"></ul>
+    </section>
+
+    <section class="card">
+      <div class="head"><h2>Rapport complet</h2><button class="btn secondary" id="copy">Copier</button></div>
+      <pre id="report"></pre>
+    </section>
+  </main>
+  <script src="diag.js"></script>
+</body>
+</html>

@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Tsukiboshi</title>
+<link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <header>
+    <img src="../icons/logo-small.svg" alt="" class="logo">
+    <span class="word">tsukiboshi</span>
+    <span class="kanji">月星</span>
+    <button class="list-btn" id="openList" title="Ouvrir ma liste">
+      <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
+      Ma liste
+    </button>
+    <button class="icon-btn" id="openBilan" title="Bilan" aria-label="Ouvrir le bilan">
+      <svg viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>
+    </button>
+    <button class="icon-btn" id="gear" title="Réglages" aria-label="Réglages">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>
+    </button>
+  </header>
+
+  <!-- Accueil -->
+  <main id="home">
+    <div class="stats">
+      <div><b id="total">0</b><span>épisodes</span></div>
+      <div><b id="series">0</b><span>séries</span></div>
+      <div><b id="hours">0</b><span>heures</span></div>
+    </div>
+
+    <div class="last" id="lastBox" hidden>
+      <span class="label">Dernier visionnage</span>
+      <div class="last-title" id="lastTitle"></div>
+      <div class="last-sub" id="lastSub"></div>
+    </div>
+
+    <span class="label">Plateformes</span>
+    <ul class="platforms" id="platforms"></ul>
+
+    <div class="actions">
+      <button class="btn primary" id="export">Mettre à jour l'Excel</button>
+      <button class="btn secondary" id="sync" title="Relire maintenant les historiques déjà importés">
+        <svg viewBox="0 0 24 24"><path d="M21 12a9 9 0 0 1-15.4 6.4L3 16"/><path d="M3 21v-5h5"/><path d="M3 12a9 9 0 0 1 15.4-6.4L21 8"/><path d="M21 3v5h-5"/></svg>
+        <span id="syncLabel">Synchro</span>
+      </button>
+    </div>
+  </main>
+
+  <!-- Confirmation d'import complet -->
+  <main id="confirm" hidden>
+    <span class="label">Import complet</span>
+    <h1 id="confirmTitle"></h1>
+    <p>Tsukiboshi va récupérer <strong>tout ton historique</strong>, depuis la création du compte.</p>
+    <ul class="notes">
+      <li>Si tu as regardé beaucoup d'épisodes (plusieurs milliers), l'import peut être <strong>long</strong> : de quelques secondes à plusieurs minutes.</li>
+      <li>Le fichier Excel peut devenir <strong>lourd</strong> (10 000 lignes ≈ 2 Mo).</li>
+      <li>Garde l'onglet ouvert jusqu'au message « Terminé ».</li>
+    </ul>
+    <div class="actions">
+      <button class="btn secondary" id="cancel">Annuler</button>
+      <button class="btn primary" id="go">Lancer l'import</button>
+    </div>
+  </main>
+
+  <!-- Réglages -->
+  <main id="settings" hidden>
+    <button class="back" id="back">
+      <svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg> Réglages
+    </button>
+    <label class="switch">
+      <span><b>Mise à jour automatique</b><small>L'Excel est réécrit après chaque épisode regardé.</small></span>
+      <input type="checkbox" id="auto"><i></i>
+    </label>
+    <label class="switch">
+      <span><b>Synchro en arrière-plan</b><small>Toutes les 6 h, récupère aussi ce que tu regardes sur la TV ou le téléphone.</small></span>
+      <input type="checkbox" id="autoSync"><i></i>
+    </label>
+    <label class="switch">
+      <span><b>Alertes nouveaux épisodes</b><small>Crunchyroll : une notification quand une série que tu suis sort un épisode (vérifié toutes les 3 h).</small></span>
+      <input type="checkbox" id="notify"><i></i>
+    </label>
+    <div class="tmdb">
+      <b>Clé TMDB <span class="opt">facultatif</span></b>
+      <small>Améliore beaucoup les affiches de films et séries (la base qu'utilise Plex). Clé gratuite : crée un compte sur themoviedb.org → Paramètres → API.</small>
+      <input id="tmdbKey" type="password" placeholder="Colle ta clé API ici" autocomplete="off" spellcheck="false">
+      <small id="tmdbState"></small>
+    </div>
+    <div class="file">
+      <span class="label">Fichier</span>
+      <div>Téléchargements / Tsukiboshi / Tsukiboshi - historique.xlsx</div>
+      <small id="lastExport"></small>
+    </div>
+    <div class="file">
+      <span class="label">Sauvegarde</span>
+      <div>Tout (historique, statuts, affiches choisies) dans un fichier, pour changer de PC sans rien perdre.</div>
+      <small id="lastBackup"></small>
+      <div class="bk-actions">
+        <button class="btn secondary small" id="backupBtn">Sauvegarder maintenant</button>
+        <button class="btn secondary small" id="restoreBtn">Restaurer…</button>
+      </div>
+    </div>
+    <button class="diag" id="diag">Ouvrir le diagnostic</button>
+    <button class="danger" id="clear">Effacer toutes les données</button>
+  </main>
+
+  <script src="popup.js"></script>
+</body>
+</html>

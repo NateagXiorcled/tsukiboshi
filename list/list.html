@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ma liste · tsukiboshi</title>
+<link rel="icon" href="../icons/icon32.png">
+<link rel="stylesheet" href="list.css">
+</head>
+<body>
+  <header class="top">
+    <div class="brand">
+      <img src="../icons/logo-small.svg" alt="" class="logo">
+      <span class="word">tsukiboshi</span>
+      <span class="sep"></span>
+      <nav class="tabs"><a class="on" aria-current="page">Ma liste</a><a href="../bilan/bilan.html">Bilan</a></nav>
+    </div>
+    <span class="art-status" id="artStatus" hidden><i></i><span id="artStatusText"></span></span>
+    <label class="search">
+      <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+      <input id="q" type="search" placeholder="Rechercher une série…" autocomplete="off">
+    </label>
+    <button class="btn primary" id="addBtn">
+      <svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg><span class="lbl">Ajouter</span>
+    </button>
+  </header>
+
+  <nav class="filters">
+    <div class="chips" id="statusChips"></div>
+    <div class="right">
+      <div class="chips small" id="platformChips"></div>
+      <select id="genre" aria-label="Genre" hidden></select>
+      <select id="decade" aria-label="Époque" hidden></select>
+      <select id="sort" aria-label="Trier">
+        <option value="recent">Vu récemment</option>
+        <option value="alpha">A → Z</option>
+        <option value="count">Le plus d'épisodes</option>
+        <option value="time">Le plus de temps</option>
+        <option value="rating">Ma note</option>
+      </select>
+    </div>
+  </nav>
+
+  <main>
+    <section class="upnext" id="upnext" hidden>
+      <h2 class="row-title">À suivre</h2>
+      <div class="rail" id="rail"></div>
+    </section>
+    <p class="count"><span id="count"></span><button class="src-link" id="srcBtn" hidden></button></p>
+    <section class="grid" id="grid"></section>
+    <div class="empty" id="empty" hidden>
+      <img src="../icons/logo.svg" alt="">
+      <h2>Rien à afficher</h2>
+      <p id="emptyText">Importe ton historique depuis le popup de tsukiboshi pour remplir ta liste.</p>
+    </div>
+  </main>
+
+  <!-- Fiche d'une série -->
+  <div class="overlay" id="overlay" hidden></div>
+  <aside class="drawer" id="drawer" aria-hidden="true">
+    <button class="icon-btn close" id="drawerClose" aria-label="Fermer">
+      <svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg>
+    </button>
+    <div class="hero" id="dHero"></div>
+    <div class="d-body">
+      <div class="d-platform" id="dPlatform"></div>
+      <h1 id="dTitle"></h1>
+      <div class="d-genres" id="dGenres"></div>
+      <div class="segmented" id="dStatus" role="radiogroup" aria-label="Statut"></div>
+      <div class="d-rate" id="dRate"></div>
+      <div class="d-stats" id="dStats"></div>
+      <div class="d-actions" id="dActions"></div>
+      <p class="d-desc" id="dDesc" hidden></p>
+      <div id="dSeasons"></div>
+      <h3 class="d-section" id="dEpTitle">Épisodes vus</h3>
+      <ol class="episodes" id="dEpisodes"></ol>
+    </div>
+  </aside>
+
+  <!-- État des sources d'affiches -->
+  <div class="modal-wrap" id="srcModal" hidden>
+    <div class="modal src-modal">
+      <div class="art-head">
+        <h2>Sources des affiches</h2>
+        <button class="icon-btn" id="srcClose" aria-label="Fermer"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+      </div>
+      <p class="src-sum" id="srcSum"></p>
+      <ul class="src-list" id="srcList"></ul>
+      <p class="art-hint">Une source « en pause » a demandé de ralentir : elle reprend toute seule. Une source « bloquée » refuse l'extension depuis ton réseau. La clé TMDB (réglages du popup) est la solution la plus fiable.</p>
+      <div class="modal-actions">
+        <a class="btn secondary" href="../diag/diag.html" target="_blank">Tester les sources</a>
+        <button class="btn secondary" id="srcRetry">Relancer la recherche des titres sans affiche</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Restaurer une sauvegarde -->
+  <div class="modal-wrap" id="restoreModal" hidden>
+    <div class="modal">
+      <h2>Restaurer une sauvegarde</h2>
+      <p class="art-hint">Choisis un fichier <b>Tsukiboshi - sauvegarde….json</b> (dans Téléchargements / Tsukiboshi sur ton ancien PC). Il est fusionné avec ce qui est déjà ici : rien n'est effacé.</p>
+      <label class="file-pick"><input type="file" id="restoreFile" accept=".json,application/json"></label>
+      <p class="restore-out" id="restoreOut"></p>
+      <div class="modal-actions">
+        <button class="btn secondary" id="restoreClose">Fermer</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Changer l'image -->
+  <div class="modal-wrap" id="artModal" hidden>
+    <div class="modal art-modal">
+      <div class="art-head">
+        <h2>Changer l'image</h2>
+        <button class="icon-btn" id="artClose" aria-label="Fermer"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+      </div>
+      <form class="art-search" id="artSearchForm">
+        <input id="artQuery" autocomplete="off" placeholder="Titre à rechercher">
+        <button class="btn primary" type="submit">Rechercher</button>
+      </form>
+      <p class="art-hint" id="artHint"></p>
+      <div class="art-grid" id="artResults"></div>
+      <form class="art-url" id="artUrlForm">
+        <label>Ou colle le lien d'une image
+          <input id="artUrl" type="url" placeholder="https://…/affiche.jpg" autocomplete="off">
+        </label>
+        <button class="btn secondary" type="submit">Utiliser ce lien</button>
+      </form>
+      <button class="link-btn" id="artReset" hidden>Revenir à l'image automatique</button>
+    </div>
+  </div>
+
+  <!-- Ajouter un titre -->
+  <div class="modal-wrap" id="addModal" hidden>
+    <form class="modal" id="addForm">
+      <h2>Ajouter à ma liste</h2>
+      <label>Titre<input id="addTitle" required placeholder="ex. Frieren" autocomplete="off"></label>
+      <label>Plateforme<select id="addPlatform"></select></label>
+      <div class="modal-actions">
+        <button type="button" class="btn secondary" id="addCancel">Annuler</button>
+        <button type="submit" class="btn primary">Ajouter</button>
+      </div>
+    </form>
+  </div>
+
+  <script type="module" src="list.js"></script>
+</body>
+</html>

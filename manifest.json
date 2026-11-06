@@ -1,0 +1,159 @@
+{
+  "manifest_version": 3,
+  "name": "Tsukiboshi 月星 — journal de visionnage anime",
+  "short_name": "Tsukiboshi",
+  "version": "5.8.0",
+  "description": "Garde la trace de tout ce que tu regardes (Crunchyroll, ADN, Netflix, Disney+, Prime Video), regroupé par série dans un fichier Excel tenu à jour en silence.",
+  "icons": {
+    "16": "icons/icon16.png",
+    "32": "icons/icon32.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "permissions": [
+    "storage",
+    "unlimitedStorage",
+    "downloads",
+    "downloads.ui",
+    "tabs",
+    "alarms",
+    "notifications"
+  ],
+  "host_permissions": [
+    "https://www.netflix.com/*",
+    "https://www.crunchyroll.com/*",
+    "https://static.crunchyroll.com/*",
+    "https://animationdigitalnetwork.com/*",
+    "https://*.animationdigitalnetwork.com/*",
+    "https://animationdigitalnetwork.fr/*",
+    "https://*.animationdigitalnetwork.fr/*",
+    "https://www.disneyplus.com/*",
+    "https://www.primevideo.com/*",
+    "https://www.amazon.fr/*",
+    "https://www.amazon.com/*",
+    "https://graphql.anilist.co/*",
+    "https://api.tvmaze.com/*",
+    "https://itunes.apple.com/*",
+    "https://www.allocine.fr/*",
+    "https://api.themoviedb.org/*",
+    "https://www.amazon.de/*",
+    "https://www.amazon.co.uk/*",
+    "https://www.amazon.it/*",
+    "https://www.amazon.es/*",
+    "https://www.amazon.ca/*",
+    "https://www.amazon.co.jp/*",
+    "https://www.amazon.com.br/*",
+    "https://www.amazon.com.mx/*",
+    "https://www.amazon.com.au/*",
+    "https://www.amazon.nl/*",
+    "https://www.amazon.com.be/*",
+    "https://*.media-imdb.com/*"
+  ],
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "action": {
+    "default_title": "Tsukiboshi 月星",
+    "default_popup": "popup/popup.html",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "32": "icons/icon32.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://www.crunchyroll.com/*"
+      ],
+      "js": [
+        "content/cr-hook.js"
+      ],
+      "run_at": "document_start",
+      "world": "MAIN"
+    },
+    {
+      "matches": [
+        "https://www.netflix.com/*"
+      ],
+      "js": [
+        "content/nf-hook.js"
+      ],
+      "run_at": "document_start",
+      "world": "MAIN"
+    },
+    {
+      "matches": [
+        "https://www.netflix.com/*",
+        "https://www.crunchyroll.com/*",
+        "https://static.crunchyroll.com/*",
+        "https://animationdigitalnetwork.com/*",
+        "https://*.animationdigitalnetwork.com/*",
+        "https://animationdigitalnetwork.fr/*",
+        "https://*.animationdigitalnetwork.fr/*",
+        "https://www.disneyplus.com/*",
+        "https://www.primevideo.com/*",
+        "https://www.amazon.fr/gp/video/*",
+        "https://www.amazon.com/gp/video/*",
+        "https://www.amazon.de/gp/video/*",
+        "https://www.amazon.co.uk/gp/video/*",
+        "https://www.amazon.it/gp/video/*",
+        "https://www.amazon.es/gp/video/*",
+        "https://www.amazon.ca/gp/video/*",
+        "https://www.amazon.co.jp/gp/video/*",
+        "https://www.amazon.com.br/gp/video/*",
+        "https://www.amazon.com.mx/gp/video/*",
+        "https://www.amazon.com.au/gp/video/*",
+        "https://www.amazon.nl/gp/video/*",
+        "https://www.amazon.com.be/gp/video/*"
+      ],
+      "js": [
+        "content/platform.js",
+        "content/tracker.js"
+      ],
+      "all_frames": true,
+      "run_at": "document_idle"
+    },
+    {
+      "matches": [
+        "https://www.netflix.com/*",
+        "https://www.crunchyroll.com/*",
+        "https://animationdigitalnetwork.com/*",
+        "https://*.animationdigitalnetwork.com/*",
+        "https://animationdigitalnetwork.fr/*",
+        "https://*.animationdigitalnetwork.fr/*",
+        "https://www.primevideo.com/*",
+        "https://www.amazon.fr/gp/video/*",
+        "https://www.amazon.com/gp/video/*",
+        "https://www.amazon.de/gp/video/*",
+        "https://www.amazon.co.uk/gp/video/*",
+        "https://www.amazon.it/gp/video/*",
+        "https://www.amazon.es/gp/video/*",
+        "https://www.amazon.ca/gp/video/*",
+        "https://www.amazon.co.jp/gp/video/*",
+        "https://www.amazon.com.br/gp/video/*",
+        "https://www.amazon.com.mx/gp/video/*",
+        "https://www.amazon.com.au/gp/video/*",
+        "https://www.amazon.nl/gp/video/*",
+        "https://www.amazon.com.be/gp/video/*"
+      ],
+      "js": [
+        "content/importer.js"
+      ],
+      "run_at": "document_idle"
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "icons/logo.svg",
+        "icons/logo-small.svg"
+      ],
+      "matches": [
+        "<all_urls>"
+      ]
+    }
+  ]
+}

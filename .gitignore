@@ -1,0 +1,12 @@
+# Protection : ces fichiers contiennent ton historique personnel, ils ne doivent jamais être publiés
+*.xlsx
+*.xls
+*.csv
+*sauvegarde*.json
+*historique*
+
+# Fichiers système
+.DS_Store
+Thumbs.db
+desktop.ini
+*.zip
