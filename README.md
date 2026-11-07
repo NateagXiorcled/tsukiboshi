@@ -3,9 +3,9 @@
 **Ton journal de visionnage anime, séries et films, tenu à jour tout seul.**
 Extension Chrome qui récupère tout ton historique Crunchyroll, ADN, Netflix, Disney+ et Prime Video depuis la création de ton compte, le range par série dans un fichier Excel et dans une belle page « Ma liste » façon Plex, puis continue discrètement après chaque épisode.
 
-![Ma liste](docs/ma-liste.png)
+![Démonstration de tsukiboshi](docs/demo.gif)
 
-> Les captures utilisent des titres et des affiches inventés.
+> Captures réalisées avec des données de démonstration. Les affiches appartiennent à leurs studios respectifs et servent uniquement d'illustration ([détails](docs/CREDITS.md)). Chez toi, l'extension trouve automatiquement les affiches de tes propres séries et films.
 
 ## Ce qu'elle fait
 
@@ -18,6 +18,8 @@ Extension Chrome qui récupère tout ton historique Crunchyroll, ADN, Netflix, D
 - **Bilan** : heures regardées, calendrier de tes soirées, top 10, genres préférés, records.
 - **Notes, favoris et avis** sur chaque titre.
 - **Sauvegarde / restauration** pour changer de PC sans rien perdre.
+
+![Ma liste](docs/ma-liste.png)
 
 | Fiche d'un titre | Bilan | Popup |
 |---|---|---|
@@ -52,7 +54,7 @@ Projet personnel et non officiel, sans aucun lien avec Crunchyroll, ADN, Netflix
 
 ## Licence
 
-Code sous licence [MIT](LICENSE). Polices Inter et Outfit sous [SIL Open Font License 1.1](fonts/OFL.txt).
+Code sous licence [MIT](LICENSE). Polices Inter et Outfit sous [SIL Open Font License 1.1](fonts/OFL.txt). Affiches des captures : © leurs ayants droit, voir [docs/CREDITS.md](docs/CREDITS.md).
 
 ---
 
