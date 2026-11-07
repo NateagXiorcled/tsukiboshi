@@ -13,13 +13,16 @@
       <img src="../icons/logo-small.svg" alt="" class="logo">
       <span class="word">tsukiboshi</span>
       <span class="sep"></span>
-      <nav class="tabs"><a class="on" aria-current="page">Ma liste</a><a href="../bilan/bilan.html">Bilan</a></nav>
+      <nav class="tabs"><a class="on" aria-current="page">Ma liste</a><a href="../recherche/recherche.html">Rechercher</a><a href="../bilan/bilan.html">Bilan</a></nav>
     </div>
     <span class="art-status" id="artStatus" hidden><i></i><span id="artStatusText"></span></span>
     <label class="search">
       <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
       <input id="q" type="search" placeholder="Rechercher une série…" autocomplete="off">
     </label>
+    <button class="btn tonight-btn" id="tonightBtn" title="Que regarder ce soir ?">
+      <svg viewBox="0 0 24 24"><path d="M20 14.5A8 8 0 0 1 9.5 4 8 8 0 1 0 20 14.5z"/></svg><span class="lbl">Ce soir</span>
+    </button>
     <button class="btn primary" id="addBtn">
       <svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg><span class="lbl">Ajouter</span>
     </button>
@@ -45,6 +48,10 @@
     <section class="upnext" id="upnext" hidden>
       <h2 class="row-title">À suivre</h2>
       <div class="rail" id="rail"></div>
+    </section>
+    <section class="upnext" id="suites" hidden>
+      <h2 class="row-title">Suites à voir <span class="row-sub">Tu as fini ces séries : leur suite existe</span></h2>
+      <div class="rail" id="suitesRail"></div>
     </section>
     <p class="count"><span id="count"></span><button class="src-link" id="srcBtn" hidden></button></p>
     <section class="grid" id="grid"></section>
@@ -90,6 +97,28 @@
       <div class="modal-actions">
         <a class="btn secondary" href="../diag/diag.html" target="_blank">Tester les sources</a>
         <button class="btn secondary" id="srcRetry">Relancer la recherche des titres sans affiche</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Ce soir -->
+  <div class="modal-wrap" id="tonightModal" hidden>
+    <div class="modal tonight" role="dialog" aria-labelledby="tonightTitle">
+      <div class="art-head">
+        <h2 id="tonightTitle">Ce soir, je regarde…</h2>
+        <button class="icon-btn" id="tonightClose" aria-label="Fermer"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+      </div>
+      <p class="t-label">J'ai</p>
+      <div class="chips small" id="tonightTime">
+        <button class="chip" data-t="25">20 min</button>
+        <button class="chip on" data-t="60">1 heure</button>
+        <button class="chip" data-t="300">Toute la soirée</button>
+      </div>
+      <p class="t-label">Envie de</p>
+      <div class="chips small" id="tonightMood"></div>
+      <div class="t-results" id="tonightResults"></div>
+      <div class="modal-actions">
+        <button class="btn secondary" id="tonightMore">Autres idées</button>
       </div>
     </div>
   </div>

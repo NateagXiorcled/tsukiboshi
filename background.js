@@ -1,6 +1,8 @@
 import { buildXlsx } from './xlsx.js';
 import { seriesProgress } from './lib/progress.js';
 import { bestArtwork, searchArtwork, sourceStats, testSources, genresFor } from './lib/artwork.js';
+import { findAnimeIds, fetchMedia, searchAnime, trendingAnime, AniLimit } from './lib/anilist.js';
+import { computeSuites } from './lib/suites.js';
 
 // Erreurs de l'extension, consultables dans la page de diagnostic (sans passer par chrome://extensions)
 async function logError(where, err) {
@@ -224,7 +226,7 @@ const pctCell = (e) =>
   e.seconds && e.length ? { pct: Math.min(1, e.seconds / e.length) } : e.progress != null ? { pct: e.progress } : null;
 const byDateDesc = (a, b) => (b.date ?? -Infinity) - (a.date ?? -Infinity);
 
-export const STATUS_LABEL = { progress: 'En cours', done: 'Vu', list: 'Ajouté à la liste' };
+export const STATUS_LABEL = { progress: 'En cours', done: 'Vu', list: 'Ajouté à la liste', dropped: 'Abandonné' };
 // Statut d'une série : choix manuel dans « Ma liste », sinon film = Vu, série = En cours
 export function showStatus(key, items, shows, meta) {
   const s = shows && shows[key] && shows[key].status;
@@ -400,7 +402,7 @@ async function exportExcel() {
 }
 
 // ---------- Sauvegarde / restauration (changement de PC, réinstallation de Chrome…) ----------
-const BACKUP_KEYS = ['entries', 'shows', 'wishlist', 'meta', 'art', 'genres', 'settings', 'sync', 'profiles'];
+const BACKUP_KEYS = ['entries', 'shows', 'wishlist', 'meta', 'art', 'genres', 'settings', 'sync', 'profiles', 'suitesHidden'];
 const BACKUP_AUTO = 'Tsukiboshi/Tsukiboshi - sauvegarde automatique.json';
 
 async function backupBytes() {
@@ -449,7 +451,7 @@ async function restoreBackup(payload) {
   const after = Object.keys(await getEntries()).length;
   const out = { lignes: after - before, total: after };
   await withLock(async () => {
-    const cur = await chrome.storage.local.get(['shows', 'wishlist', 'meta', 'art', 'genres', 'settings', 'sync', 'profiles']);
+    const cur = await chrome.storage.local.get(['shows', 'wishlist', 'meta', 'art', 'genres', 'settings', 'sync', 'profiles', 'suitesHidden']);
     const merge = (a = {}, b = {}, keep) => {
       const o = { ...a };
       for (const [k, v] of Object.entries(b)) if (!(k in o) || keep(o[k], v)) o[k] = v;
@@ -466,7 +468,8 @@ async function restoreBackup(payload) {
     const profiles = merge(cur.profiles, d.profiles, () => false);
     out.choix = Object.keys(shows).length - Object.keys(cur.shows || {}).length;
     out.affiches = Object.values(art).filter((a) => a.poster).length - Object.values(cur.art || {}).filter((a) => a.poster).length;
-    await chrome.storage.local.set({ shows, art, genres, meta, wishlist, settings, sync, profiles });
+    const suitesHidden = { ...(d.suitesHidden || {}), ...(cur.suitesHidden || {}) };
+    await chrome.storage.local.set({ shows, art, genres, meta, wishlist, settings, sync, profiles, suitesHidden });
   });
   scheduleExport();
   return out;
@@ -720,6 +723,72 @@ async function genreTick() {
   }
 }
 
+// ---------- Suites ratées (AniList) ----------
+let suitesRunning = false;
+async function animeGroups() {
+  const [entries, genres, meta] = await Promise.all([getEntries(), getLocal('genres', {}), getLocal('meta', {})]);
+  const map = new Map();
+  for (const e of Object.values(entries)) {
+    const k = seriesKey(e);
+    if (!map.has(k)) map.set(k, { key: k, title: e.title, platform: e.platform, items: [], last: 0 });
+    const g = map.get(k);
+    g.items.push(e);
+    g.last = Math.max(g.last, e.date || 0);
+  }
+  return [...map.values()].filter((g) => !NO_ART.test(g.title)
+    && (g.platform === 'crunchyroll' || g.platform === 'adn' || ((genres[g.key] || {}).genres || []).includes('Animé')))
+    .map((g) => ({ ...g, meta: meta[g.key] || null }));
+}
+
+// recalcul à partir des fiches déjà téléchargées (rapide, sans réseau)
+async function recomputeSuites() {
+  const [groups, ids, media, hidden] = await Promise.all([animeGroups(), getLocal('aniIds', {}), getLocal('aniMedia', {}), getLocal('suitesHidden', {})]);
+  for (const g of groups) g.aniId = (ids[g.key] || {}).id || null;
+  const r = computeSuites({ groups, media, hidden });
+  await chrome.storage.local.set({ suites: { list: r.list, at: Date.now() } });
+  return r;
+}
+
+let suitesRetry = null;
+async function suitesTick() {
+  if (suitesRunning || artRunning || genreRunning) {
+    // occupé (affiches ou genres en cours) : on réessaie un peu plus tard plutôt que d'ignorer la demande
+    if (!suitesRetry) suitesRetry = setTimeout(() => { suitesRetry = null; suitesTick(); }, 20000);
+    return;
+  }
+  suitesRunning = true;
+  const now = Date.now();
+  try {
+    const [groups, art] = await Promise.all([animeGroups(), getLocal('art', {})]);
+    const ids = await getLocal('aniIds', {});
+    // 1. identifiant AniList de chaque animé (déjà connu si l'affiche vient d'AniList)
+    for (const g of groups) {
+      const a = art[g.key];
+      if (!ids[g.key] && a && /^anilist:\d+$/.test(a.id || '')) ids[g.key] = { id: +a.id.split(':')[1], fetched: now };
+    }
+    const todo = groups.filter((g) => !ids[g.key] || (!ids[g.key].id && now - ids[g.key].fetched > 14 * DAY)).slice(0, 48);
+    if (todo.length) {
+      const found = await findAnimeIds(todo.map((g) => g.title));
+      for (const g of todo) ids[g.key] = { id: found[g.title] || null, fetched: now };
+    }
+    await chrome.storage.local.set({ aniIds: ids });
+    // 2. fiches et suites (rafraîchies chaque semaine), puis on suit la chaîne des suites
+    const media = await getLocal('aniMedia', {});
+    let want = [...new Set(groups.map((g) => (ids[g.key] || {}).id).filter(Boolean))].filter((id) => !media[id] || now - media[id].fetched > 7 * DAY).slice(0, 60);
+    for (let round = 0; round < 4 && want.length; round++) {
+      Object.assign(media, await fetchMedia(want));
+      await chrome.storage.local.set({ aniMedia: media });
+      const r = await recomputeSuites();
+      want = r.need.filter((id) => !media[id]).slice(0, 30);
+    }
+    await recomputeSuites();
+  } catch (e) {
+    if (!(e instanceof AniLimit)) logError('suites', e);
+  } finally {
+    suitesRunning = false;
+  }
+}
+
 // ---------- synchro discrète des historiques ----------
 const syncWaiters = {};
 let syncing = false;
@@ -941,7 +1010,7 @@ chrome.runtime.onStartup.addListener(setupAlarm);
 chrome.runtime.onStartup.addListener(() => updateBadge());
 chrome.alarms.onAlarm.addListener((a) => {
   if (a.name === 'sync') runSync(false);
-  if (a.name === 'art') artTick().then(() => genreTick()).catch((e) => logError('genres', e));
+  if (a.name === 'art') artTick().then(() => genreTick()).then(() => suitesTick()).catch((e) => logError('genres', e));
 });
 
 // ---------- messages ----------
@@ -1041,6 +1110,48 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
 
       case 'restore':
         return await restoreBackup(msg.payload);
+
+      case 'suitesKick':
+        suitesTick();
+        return { ok: true };
+
+      case 'hideSuite': {
+        const hidden = await getLocal('suitesHidden', {});
+        hidden[msg.id] = Date.now();
+        await chrome.storage.local.set({ suitesHidden: hidden });
+        await recomputeSuites();
+        return { ok: true };
+      }
+
+      case 'animeById':
+        try {
+          const media = await getLocal('aniMedia', {});
+          if (media[msg.id] && Date.now() - media[msg.id].fetched < 7 * DAY) return { media: media[msg.id] };
+          const got = await fetchMedia([+msg.id], true);
+          return { media: got[msg.id] || null };
+        } catch (e) {
+          return { error: e instanceof AniLimit ? 'AniList est momentanément saturé, réessaie dans une minute.' : 'Fiche introuvable : ' + e.message };
+        }
+
+      case 'trendingAnime': {
+        // gardé 6 h en mémoire de session
+        const { trending } = await chrome.storage.session.get('trending');
+        if (trending && Date.now() - trending.at < 6 * 3600e3) return { results: trending.list };
+        try {
+          const list = await trendingAnime();
+          await chrome.storage.session.set({ trending: { at: Date.now(), list } }).catch(() => {});
+          return { results: list };
+        } catch (e) {
+          return { error: 'Tendances indisponibles pour le moment.' };
+        }
+      }
+
+      case 'searchAnime':
+        try {
+          return { results: await searchAnime(String(msg.q || '').slice(0, 100), msg.page || 1) };
+        } catch (e) {
+          return { error: e instanceof AniLimit ? 'AniList est momentanément saturé, réessaie dans une minute.' : 'Recherche impossible : ' + e.message };
+        }
 
       case 'logError':
         await logError(msg.where || 'page', msg.msg);

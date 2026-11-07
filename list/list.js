@@ -2,6 +2,8 @@
 window.addEventListener('error', (e) => chrome.runtime.sendMessage({ type: 'logError', where: 'Ma liste', msg: (e.error && e.error.stack) || e.message }).catch(() => {}));
 window.addEventListener('unhandledrejection', (e) => chrome.runtime.sendMessage({ type: 'logError', where: 'Ma liste', msg: String((e.reason && e.reason.stack) || e.reason) }).catch(() => {}));
 import { seriesProgress } from '../lib/progress.js';
+import { frenchGenres } from '../lib/artwork.js';
+import { platformOfLink } from '../lib/anilist.js';
 // tsukiboshi — page « Ma liste »
 const PLATFORMS = { netflix: 'Netflix', crunchyroll: 'Crunchyroll', adn: 'ADN', disney: 'Disney+', prime: 'Prime Video' };
 const COLORS = { netflix: '#e50914', crunchyroll: '#f47521', adn: '#0099e5', disney: '#3a67ff', prime: '#00a8e1' };
@@ -9,6 +11,7 @@ const STATUS = {
   progress: { label: 'En cours', color: 'var(--s-progress)' },
   done: { label: 'Vu', color: 'var(--s-done)' },
   list: { label: 'Ajouté à la liste', color: 'var(--s-list)' },
+  dropped: { label: 'Abandonné', color: 'var(--s-dropped)' },
 };
 
 const $ = (id) => document.getElementById(id);
@@ -19,15 +22,15 @@ const safeUrl = (u) => (/^https?:\/\//i.test(u || '') ? u : '');
 const keyOf = (platform, title) => `${platform}|${norm(title)}`;
 const fmtN = (n) => n.toLocaleString('fr-FR');
 
-let data = { entries: {}, shows: {}, wishlist: {}, meta: {}, art: {}, newEps: {}, genres: {} };
+let data = { entries: {}, shows: {}, wishlist: {}, meta: {}, art: {}, newEps: {}, genres: {}, suites: [] };
 let shows = [];
 const view = { status: 'all', platform: 'all', q: '', sort: 'recent', genre: '', decade: '' };
 let openKey = null;
 
 // ---------- Données ----------
 async function load() {
-  const r = await chrome.storage.local.get(['entries', 'shows', 'wishlist', 'meta', 'art', 'newEps', 'genres']);
-  data = { entries: r.entries || {}, shows: r.shows || {}, wishlist: r.wishlist || {}, meta: r.meta || {}, art: r.art || {}, newEps: r.newEps || {}, genres: r.genres || {} };
+  const r = await chrome.storage.local.get(['entries', 'shows', 'wishlist', 'meta', 'art', 'newEps', 'genres', 'suites']);
+  data = { entries: r.entries || {}, shows: r.shows || {}, wishlist: r.wishlist || {}, meta: r.meta || {}, art: r.art || {}, newEps: r.newEps || {}, genres: r.genres || {}, suites: (r.suites && r.suites.list) || [] };
   shows = buildShows();
   render();
   if (openKey) openShow(openKey, true);
@@ -210,6 +213,8 @@ function renderChips() {
   const base = shows.filter((s) => view.platform === 'all' || s.platform === view.platform);
   const n = (st) => base.filter((s) => s.status === st).length;
   const items = [['all', 'Tout', base.length], ['progress', 'En cours', n('progress')], ['done', 'Vu', n('done')], ['list', 'Ajouté à la liste', n('list')]];
+  const dropped = n('dropped');
+  if (dropped || view.status === 'dropped') items.push(['dropped', 'Abandonné', dropped]);
   const favs = base.filter((s) => s.fav).length;
   if (favs || view.status === 'fav') items.push(['fav', 'Favoris', favs]);
   $('statusChips').innerHTML = items.map(([id, label, count]) =>
@@ -252,6 +257,7 @@ function render() {
   if (typeof kickArt === 'function' && shows.length) kickArt();
   renderChips();
   renderUpNext();
+  renderSuites();
   const list = filtered();
   $('count').textContent = `${fmtN(list.length)} ${list.length > 1 ? 'titres' : 'titre'}`;
   const withPoster = shows.filter((x) => x.poster).length;
@@ -354,6 +360,177 @@ $('rail').onclick = async (e) => {
   }
   if (e.target.closest('[data-open]')) openShow(tile.dataset.key);
 };
+
+// ---------- Suites à voir ----------
+const MONTHS = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'];
+const searchUrl = (platform, q) => ({
+  netflix: `https://www.netflix.com/search?q=${encodeURIComponent(q)}`,
+  crunchyroll: `https://www.crunchyroll.com/search?q=${encodeURIComponent(q)}`,
+  adn: `https://animationdigitalnetwork.com/video?search=${encodeURIComponent(q)}`,
+  prime: `https://www.primevideo.com/search/ref=atv_sr_sug?phrase=${encodeURIComponent(q)}`,
+  disney: `https://www.disneyplus.com/search?q=${encodeURIComponent(q)}`,
+}[platform] || '');
+// liens de streaming d'une suite, la plateforme habituelle en premier
+function suiteLinks(x) {
+  const seen = new Set(), out = [];
+  for (const l of x.links || []) {
+    const p = platformOfLink(l.site);
+    const id = p || l.site;
+    if (seen.has(id) || !safeUrl(l.url)) continue;
+    seen.add(id);
+    out.push({ p, name: PLATFORMS[p] || l.site, url: l.url });
+  }
+  return out.sort((a, b) => (b.p === x.platform) - (a.p === x.platform));
+}
+function suiteLink(x) {
+  const l = suiteLinks(x)[0];
+  return l ? l.url : searchUrl(x.platform, x.title);
+}
+function suiteList() {
+  if (!(view.status === 'all' || view.status === 'progress') || view.q || view.genre || view.decade) return [];
+  return data.suites.filter((x) => view.platform === 'all' || x.platform === view.platform).slice(0, 16);
+}
+function suiteCard(x) {
+  const links = suiteLinks(x);
+  const when = x.upcoming
+    ? (x.start ? `Sortie prévue : ${x.start[2] && x.start[1] ? MONTHS[x.start[1] - 1] + ' ' : ''}${x.start[0]}` : 'Annoncée, date à venir')
+    : [x.year, x.episodes && x.format !== 'MOVIE' ? `${x.episodes} ép.` : ''].filter(Boolean).join(' · ');
+  const inList = Object.values(data.wishlist).some((w) => norm(w.title) === norm(x.title));
+  const link = !x.upcoming && safeUrl(suiteLink(x));
+  return `<article class="up suite" data-id="${x.id}">
+    <div class="thumb wide">${x.cover ? blurBg(x.cover) + img(x.cover, x.title) : placeholder(x.title)}
+      <span class="badge ${x.upcoming ? 'soon' : 'kind'}">${x.upcoming ? 'Annoncé' : esc(x.kind)}</span>
+      ${link ? `<a class="play" href="${esc(link)}" target="_blank" rel="noopener" aria-label="Regarder ${esc(x.title)}"><span>${PLAY_ICON}</span></a>` : ''}
+      <button class="hide-up" data-hide-suite title="Ne plus proposer" aria-label="Ne plus proposer cette suite"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+    </div>
+    <div class="meta">
+      <div class="c-platform">Suite de ${esc(x.after)}</div>
+      <div class="c-title">${esc(x.title)}</div>
+      <div class="c-when">${esc(when)}</div>
+      ${x.upcoming ? '' : `<div class="links">${links.length ? links.slice(0, 3).map((l) => `<a href="${esc(l.url)}" target="_blank" rel="noopener">${l.p ? `<span class="dot" style="background:${COLORS[l.p]}"></span>` : ''}${esc(l.name)}</a>`).join('') : `<span class="none">Pas de lien de streaming connu</span>`}</div>`}
+      <button class="add-list" data-add-suite ${inList ? 'disabled' : ''}>${inList ? '✓ Dans ma liste' : '+ Ajouter à ma liste'}</button>
+    </div>
+  </article>`;
+}
+function renderSuites() {
+  const list = suiteList();
+  $('suites').hidden = !list.length;
+  $('suitesRail').innerHTML = list.map(suiteCard).join('');
+}
+$('suitesRail').onclick = async (e) => {
+  const card = e.target.closest('.suite');
+  if (!card) return;
+  const x = data.suites.find((s) => String(s.id) === card.dataset.id);
+  if (!x) return;
+  if (e.target.closest('[data-hide-suite]')) {
+    card.remove();
+    if (!$('suitesRail').children.length) $('suites').hidden = true;
+    await chrome.runtime.sendMessage({ type: 'hideSuite', id: x.id });
+  } else if (e.target.closest('[data-add-suite]')) {
+    const l = suiteLinks(x)[0];
+    await addTitle(x.title, (l && l.p) || x.platform);
+  }
+};
+
+// ---------- Ce soir ----------
+const tonight = { t: 60, mood: '', offset: 0 };
+const isAnime = (s) => s.platform === 'crunchyroll' || s.platform === 'adn' || (s.genres || []).includes('Animé');
+function tonightCandidates() {
+  const now = Date.now(), DAY = 864e5, out = [];
+  for (const s of shows) {
+    if (s.status === 'dropped' || s.isMovie) continue;
+    const epMin = isAnime(s) ? 24 : 45;
+    const base = { key: s.key, title: s.title, img: s.wide || (s.lastItem && s.lastItem.image) || s.poster || s.image, genres: s.genres, mins: epMin };
+    if (!s.items.length) {
+      out.push({ ...base, score: 30, why: `Dans ta liste depuis ${when(s.added || now)}`, link: resumeLink(s, false) || searchUrl(s.platform, s.title) });
+      continue;
+    }
+    const nw = data.newEps[s.key];
+    if (s.status !== 'progress' && !nw) continue;
+    const li = s.lastItem;
+    const frac = li.length && li.seconds ? li.seconds / li.length : li.progress;
+    const partial = frac != null && frac > 0.03 && frac < 0.9;
+    const days = (now - (s.last || now)) / DAY;
+    const left = s.prog ? s.prog.total - s.prog.watched : null;
+    if (nw) out.push({ ...base, score: 100, why: `<em>Nouvel épisode</em> · ${epLabel({ season: nw.season, ep: nw.ep })}`, link: resumeLink(s, false), left });
+    else if (days > 60) out.push({ ...base, score: 18, dropped: true, why: li.episode ? `Mis de côté ${when(s.last)} à ${esc(li.episode)}. On reprend ?` : `Mis de côté ${when(s.last)}. On reprend ?`, link: resumeLink(s, false), left });
+    else if (s.prog && !s.prog.next && (s.prog.upToDate || s.prog.complete)) continue;
+    else {
+      // on sait exactement quoi lancer → en premier ; sans numéro d'épisode (ADN…) → plus bas
+      const why = partial ? `<em>Reprendre</em> ${esc(li.episode || '')}`
+        : s.prog && s.prog.next ? `<em>Prochain</em> · ${epLabel(s.prog.next)}`
+        : li.episode ? `Après ${esc(li.episode)}` : `Vu pour la dernière fois ${when(s.last)}`;
+      const bonus = partial ? 10 : s.prog && s.prog.next ? 6 : li.episode ? 0 : -25;
+      out.push({ ...base, score: 75 - days + bonus, why, link: resumeLink(s, partial), left });
+    }
+  }
+  for (const x of data.suites) {
+    if (x.upcoming) continue;
+    const movie = x.format === 'MOVIE';
+    out.push({ key: 'suite:' + x.id, title: x.title, img: x.cover, genres: frenchGenres(x.genres, 'anime'), mins: movie ? 110 : 24, movie, score: 55, why: `<em>Suite</em> de ${esc(x.after)} · ${esc(x.kind.toLowerCase())}`, link: suiteLink(x), left: movie ? null : x.episodes });
+  }
+  return out
+    .filter((c) => c.link && c.mins <= Math.max(tonight.t, 30) + (tonight.t >= 300 ? 999 : 0))
+    .map((c) => {
+      let score = c.score;
+      if (tonight.mood) score += c.genres && c.genres.includes(tonight.mood) ? 45 : -35;
+      if (tonight.t >= 300 && (c.movie || (c.left || 0) >= 3)) score += 15; // de quoi remplir la soirée
+      if (tonight.t <= 25 && c.mins <= 25) score += 5;
+      return { ...c, score };
+    })
+    .sort((a, b) => b.score - a.score);
+}
+function tonightCard(c) {
+  const dur = c.movie ? `≈ ${Math.round(c.mins / 6) / 10} h` : `≈ ${c.mins} min par épisode${c.left > 1 ? ` · ${c.left} restants` : ''}`;
+  return `<div class="t-card" data-key="${esc(c.key)}">
+    <div class="thumb wide">${c.img ? blurBg(c.img) + img(c.img, c.title) : placeholder(c.title)}</div>
+    <div class="t-title">${esc(c.title)}</div>
+    <div class="t-why">${c.why}</div>
+    <div class="t-dur">${esc(dur)}</div>
+    <div class="t-actions">
+      <a class="btn primary" href="${esc(c.link)}" target="_blank" rel="noopener">${PLAY_ICON} ${c.dropped ? 'Reprendre' : 'Regarder'}</a>
+      ${c.dropped ? `<button class="btn secondary" data-drop>Abandonner</button>` : ''}
+    </div>
+  </div>`;
+}
+function renderTonight() {
+  const all = tonightCandidates();
+  if (tonight.offset >= all.length) tonight.offset = 0;
+  const pick = all.slice(tonight.offset, tonight.offset + 3);
+  $('tonightResults').innerHTML = pick.length ? pick.map(tonightCard).join('') : `<p class="t-empty">Rien qui rentre dans ce créneau. Essaie « Toute la soirée » ou une autre envie.</p>`;
+  $('tonightMore').hidden = all.length <= 3;
+  requestAnimationFrame(fitAll);
+}
+function openTonight() {
+  // envies : les genres les plus présents dans tes séries en cours
+  const count = new Map();
+  for (const s of shows) if (s.status === 'progress' || !s.items.length) for (const g of s.genres) count.set(g, (count.get(g) || 0) + 1);
+  const moods = [...count].sort((a, b) => b[1] - a[1]).slice(0, 7).map(([g]) => g);
+  if (tonight.mood && !moods.includes(tonight.mood)) tonight.mood = '';
+  $('tonightMood').innerHTML = [`<button class="chip ${tonight.mood ? '' : 'on'}" data-mood="">Peu importe</button>`, ...moods.map((g) => `<button class="chip ${tonight.mood === g ? 'on' : ''}" data-mood="${esc(g)}">${esc(g)}</button>`)].join('');
+  for (const b of $('tonightTime').children) b.classList.toggle('on', +b.dataset.t === tonight.t);
+  tonight.offset = 0;
+  renderTonight();
+  $('tonightModal').hidden = false;
+  requestAnimationFrame(() => $('tonightClose').focus());
+}
+$('tonightBtn').onclick = openTonight;
+$('tonightClose').onclick = () => ($('tonightModal').hidden = true);
+$('tonightModal').onclick = async (e) => {
+  if (e.target === $('tonightModal')) { $('tonightModal').hidden = true; return; }
+  const t = e.target.closest('[data-t]');
+  if (t) { tonight.t = +t.dataset.t; tonight.offset = 0; for (const b of $('tonightTime').children) b.classList.toggle('on', b === t); renderTonight(); return; }
+  const m = e.target.closest('[data-mood]');
+  if (m) { tonight.mood = m.dataset.mood; tonight.offset = 0; for (const b of $('tonightMood').children) b.classList.toggle('on', b === m); renderTonight(); return; }
+  if (e.target.closest('[data-drop]')) {
+    const key = e.target.closest('.t-card').dataset.key;
+    await setStatus(key, 'dropped');
+    data.shows = (await chrome.storage.local.get('shows')).shows || {};
+    shows = buildShows();
+    renderTonight();
+  }
+};
+$('tonightMore').onclick = () => { tonight.offset += 3; renderTonight(); };
 
 // ---------- Restaurer une sauvegarde ----------
 function openRestore() {
@@ -645,7 +822,8 @@ $('drawerClose').onclick = closeShow;
 $('overlay').onclick = closeShow;
 document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape') {
-    if (!$('restoreModal').hidden) $('restoreModal').hidden = true;
+    if (!$('tonightModal').hidden) $('tonightModal').hidden = true;
+    else if (!$('restoreModal').hidden) $('restoreModal').hidden = true;
     else if (!$('srcModal').hidden) $('srcModal').hidden = true;
     else if (!$('artModal').hidden) $('artModal').hidden = true;
     else if (!$('addModal').hidden) $('addModal').hidden = true;
@@ -677,6 +855,11 @@ chrome.storage.onChanged.addListener((changes, area) => {
     shows = buildShows();
     if (view.genre || view.decade) render(); else renderSelects();
     if (openKey && $('drawer').classList.contains('open')) openShow(openKey, true);
+    return;
+  }
+  if (changes.suites && !(changes.entries || changes.shows || changes.wishlist || changes.meta || changes.art || changes.newEps)) {
+    data.suites = (changes.suites.newValue && changes.suites.newValue.list) || [];
+    renderSuites();
     return;
   }
   if (!(changes.entries || changes.shows || changes.wishlist || changes.meta || changes.art || changes.newEps)) return;

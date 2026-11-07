@@ -94,6 +94,7 @@ async function openPage(path) {
 }
 $('openList').onclick = () => openPage('list/list.html');
 $('openBilan').onclick = () => openPage('bilan/bilan.html');
+$('openSearch').onclick = () => openPage('recherche/recherche.html');
 $('gear').onclick = () => show($('settings').hidden ? 'settings' : 'home');
 $('back').onclick = () => show('home');
 

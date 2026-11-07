@@ -1,0 +1,27 @@
+/* Recherche d'animés : complète list.css */
+.search.big { width: min(560px, 48vw); }
+main .row-title { margin-top: 18px; }
+.card .badge.mine { --s: #2fbf71; }
+.card .badge.wish { --s: #3b82f6; }
+.card .c-genres { color: var(--muted); font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.d-alt { margin: 4px 0 0; color: var(--muted); font-size: 13px; }
+.d-facts { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
+.d-facts span { display: inline-flex; align-items: center; height: 26px; padding: 0 10px; border-radius: 6px; background: var(--surface-2); font-size: 12px; font-weight: 600; }
+.d-facts .score { color: #ffc94d; }
+.where { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+.where a { display: inline-flex; align-items: center; gap: 7px; height: 34px; padding: 0 14px; border-radius: 99px; border: 1px solid var(--line); background: var(--surface); color: var(--text); font-weight: 600; font-size: 13px; text-decoration: none; }
+.where a:hover { background: var(--surface-2); }
+.where a.mine { border-color: rgba(108, 77, 255, .6); }
+.where .dot { width: 8px; height: 8px; border-radius: 50%; }
+.where .note { color: var(--muted); font-size: 13px; }
+.mine-box { margin-top: 16px; padding: 12px 14px; border-radius: 10px; background: rgba(47, 191, 113, .08); border: 1px solid rgba(47, 191, 113, .35); font-size: 13px; }
+.mine-box a { color: #7be3a8; }
+.d-desc-src { color: var(--muted); font-size: 11px; margin-top: 6px; }
+.rels { display: grid; grid-template-columns: repeat(auto-fill, minmax(118px, 1fr)); gap: 12px; margin-top: 10px; }
+.rel { cursor: pointer; min-width: 0; border: 0; background: none; padding: 0; text-align: left; color: inherit; font: inherit; }
+.rel .thumb { aspect-ratio: 2 / 3; }
+.rel .r-kind { margin-top: 6px; font-size: 11px; font-weight: 700; color: var(--accent-hover); text-transform: uppercase; letter-spacing: .3px; }
+.rel .r-title { font-size: 13px; font-weight: 600; line-height: 1.3; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.rel .r-meta { color: var(--muted); font-size: 12px; }
+.loading { color: var(--muted); padding: 30px 0; text-align: center; grid-column: 1 / -1; }
+@media (max-width: 720px) { .search.big { width: auto; } }

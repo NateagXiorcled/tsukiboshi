@@ -1,4 +1,4 @@
-# Guide complet — tsukiboshi 月星 (v5.8)
+# Guide complet — tsukiboshi 月星 (v5.9)
 
 Plateformes : Netflix, Crunchyroll, ADN, Disney+, Prime Video.
 Fonctionne avec n'importe quel compte : l'extension utilise le compte connecté dans Chrome.
@@ -35,6 +35,20 @@ Popup → **Ma liste** : une page avec toutes tes séries et tous tes films en v
 - Crunchyroll : vraie affiche, nombre d'épisodes vus / total, prochain épisode, progression par saison
   (infos récupérées après chaque import et rafraîchies à chaque synchro).
 - Statut automatique : tous les épisodes vus = Vu (série en cours de diffusion = En cours « À jour »), sinon En cours ; film = Vu. Un statut choisi à la main est gardé (et repris dans l'onglet *Séries* de l'Excel).
+
+### Ce soir
+Bouton **Ce soir** en haut de Ma liste : choisis le temps dont tu disposes (20 min, 1 heure, toute la soirée) et ton envie (genre).
+Tsukiboshi propose 3 idées concrètes avec un bouton ▶ : nouvel épisode sorti, épisode à reprendre, prochain épisode, suite à voir, titre de ta liste, ou série mise de côté depuis plus de 2 mois (« On reprend ? », avec un bouton **Abandonner**).
+« Autres idées » fait défiler les propositions suivantes.
+
+### Suites à voir
+Pour chaque animé que tu as terminé, Tsukiboshi cherche sur AniList la suite (nouvelle saison, film, OAV) que tu n'as pas encore vue.
+- Rangée **Suites à voir** sous « À suivre », avec les plateformes où la regarder.
+- Les suites annoncées apparaissent avec leur date de sortie prévue.
+- **+ Ajouter à ma liste** la met de côté ; la croix ne la propose plus.
+
+### Statut Abandonné
+En plus de En cours / Vu / Ajouté à la liste : une série abandonnée n'apparaît plus dans « À suivre » ni « Ce soir ». Repris dans l'Excel.
 
 ### Ma note, favoris, avis
 - Dans la fiche d'un titre : 1 à 5 étoiles (re-cliquer la même étoile efface la note), ♥ Favori et un avis libre.

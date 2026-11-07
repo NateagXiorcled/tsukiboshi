@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Rechercher · tsukiboshi</title>
+<link rel="icon" href="../icons/icon32.png">
+<link rel="stylesheet" href="../list/list.css">
+<link rel="stylesheet" href="recherche.css">
+</head>
+<body>
+  <header class="top">
+    <div class="brand">
+      <img src="../icons/logo-small.svg" alt="" class="logo">
+      <span class="word">tsukiboshi</span>
+      <span class="sep"></span>
+      <nav class="tabs"><a href="../list/list.html">Ma liste</a><a class="on" aria-current="page">Rechercher</a><a href="../bilan/bilan.html">Bilan</a></nav>
+    </div>
+    <form class="search big" id="form" role="search">
+      <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+      <input id="q" type="search" placeholder="Rechercher un animé (titre français, anglais ou japonais)…" autocomplete="off" autofocus>
+    </form>
+  </header>
+
+  <main>
+    <h2 class="row-title" id="heading">Animés du moment</h2>
+    <p class="count" id="hint">Les plus suivis en ce moment sur AniList. Tape un titre pour chercher n'importe quel animé.</p>
+    <section class="grid" id="grid" aria-live="polite"></section>
+    <div class="empty" id="empty" hidden>
+      <img src="../icons/logo.svg" alt="">
+      <h2 id="emptyTitle">Aucun résultat</h2>
+      <p id="emptyText">Essaie avec le titre anglais ou japonais.</p>
+    </div>
+  </main>
+
+  <div class="overlay" id="overlay" hidden></div>
+  <aside class="drawer" id="drawer" aria-hidden="true">
+    <button class="icon-btn close" id="drawerClose" aria-label="Fermer">
+      <svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg>
+    </button>
+    <div class="hero" id="dHero"></div>
+    <div class="d-body" id="dBody"></div>
+  </aside>
+
+  <script type="module" src="recherche.js"></script>
+</body>
+</html>

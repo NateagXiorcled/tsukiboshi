@@ -14,6 +14,7 @@
   --s-progress: #f0524f;
   --s-done: #2fbf71;
   --s-list: #3b82f6;
+  --s-dropped: #8b8b98;
 }
 
 * { box-sizing: border-box; }
@@ -140,7 +141,7 @@ main { padding: 8px 32px 48px; }
 .d-platform .dot { width: 7px; height: 7px; border-radius: 50%; }
 .drawer h1 { margin: 6px 0 16px; font-size: 26px; line-height: 1.2; letter-spacing: -0.4px; }
 
-.segmented { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; padding: 4px; border-radius: 10px; background: var(--surface); border: 1px solid var(--line); }
+.segmented { display: grid; grid-template-columns: repeat(auto-fit, minmax(104px, 1fr)); gap: 4px; padding: 4px; border-radius: 10px; background: var(--surface); border: 1px solid var(--line); }
 .segmented button {
   height: 34px; border: 0; border-radius: 7px; background: none; cursor: pointer;
   color: var(--muted); font-weight: 600; font-size: 13px;
@@ -326,3 +327,43 @@ a.btn { text-decoration: none; display: inline-flex; align-items: center; }
 
 /* focus visible au clavier */
 .up .meta:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; border-radius: 6px; }
+
+/* ---------- Suites à voir ---------- */
+.row-sub { margin-left: 10px; font: 500 13px 'Inter', sans-serif; color: var(--muted); }
+.up .badge.kind { --s: #6c4dff; }
+.up .badge.soon { --s: #3a3a46; }
+.up .links { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+.up .links a { display: inline-flex; align-items: center; gap: 5px; height: 24px; padding: 0 9px; border-radius: 99px; border: 1px solid var(--line); color: var(--text); font-size: 12px; font-weight: 600; text-decoration: none; }
+.up .links a:hover { background: var(--surface-2); }
+.up .links .dot { width: 6px; height: 6px; border-radius: 50%; }
+.up .links .none { color: var(--muted); font-size: 12px; }
+.up .add-list { margin-top: 8px; height: 28px; padding: 0 10px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); color: var(--text); font: 600 12px 'Inter', sans-serif; cursor: pointer; }
+.up .add-list:hover { background: var(--surface-2); }
+.up .add-list[disabled] { opacity: .6; cursor: default; }
+
+/* ---------- Ce soir ---------- */
+.tonight-btn { background: linear-gradient(135deg, #2a1f5c, #1d1d24); border: 1px solid #3d2f80; color: #e8e2ff; }
+.tonight-btn:hover { background: linear-gradient(135deg, #34268a, #24242c); }
+.tonight-btn svg { fill: #ffc94d; stroke: none; }
+.modal.tonight { width: min(860px, 100%); max-height: calc(100vh - 32px); overflow: auto; }
+.t-label { margin: 14px 0 8px; color: var(--muted); font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .4px; }
+.t-results { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; margin: 20px 0 8px; }
+.t-card { min-width: 0; display: flex; flex-direction: column; }
+.t-card .thumb { aspect-ratio: 16 / 9; }
+.t-card .t-title { margin-top: 10px; font-weight: 700; font-size: 15px; line-height: 1.3; }
+.t-card .t-why { margin-top: 4px; color: var(--text); font-size: 13px; }
+.t-card .t-why em { font-style: normal; color: #ffc94d; font-weight: 600; }
+.t-card .t-dur { margin-top: 2px; color: var(--muted); font-size: 12px; }
+.t-card .t-actions { display: flex; gap: 6px; margin-top: auto; padding-top: 10px; flex-wrap: wrap; }
+.t-card .t-actions .btn { height: 32px; font-size: 12px; padding: 0 12px; text-decoration: none; }
+.t-empty { grid-column: 1 / -1; color: var(--muted); text-align: center; padding: 24px 0; }
+@media (max-width: 720px) { .t-results { grid-template-columns: 1fr; } .tonight-btn { width: 38px; padding: 0; } }
+.t-actions .btn svg { width: 12px; height: 12px; fill: currentColor; stroke: none; }
+
+/* petit écran : logo + onglets sur une ligne, recherche + boutons sur la suivante */
+@media (max-width: 520px) {
+  .top { flex-wrap: wrap; height: auto; padding: 10px 16px; row-gap: 10px; }
+  .top .brand { flex: 1 0 100%; }
+  .top .search { order: 2; }
+  .top .btn { order: 3; }
+}
