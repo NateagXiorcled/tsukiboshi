@@ -941,9 +941,39 @@ async function runSync(force) {
   }
 }
 
+// ---------- Nouvelle version disponible (Releases GitHub, une fois par jour) ----------
+const RELEASES = 'https://api.github.com/repos/NateagXiorcled/tsukiboshi/releases/latest';
+export function newer(a, b) {
+  const pa = String(a).replace(/^v/, '').split('.').map(Number), pb = String(b).replace(/^v/, '').split('.').map(Number);
+  for (let i = 0; i < 3; i++) { if ((pa[i] || 0) !== (pb[i] || 0)) return (pa[i] || 0) > (pb[i] || 0); }
+  return false;
+}
+async function checkUpdate(force) {
+  const cur = await getLocal('update', {});
+  if (!force && Date.now() - (cur.checked || 0) < 20 * 3600e3) return cur;
+  try {
+    const ctl = new AbortController();
+    const t = setTimeout(() => ctl.abort(), 15000);
+    const r = await fetch(RELEASES, { headers: { Accept: 'application/vnd.github+json' }, signal: ctl.signal });
+    clearTimeout(t);
+    if (!r.ok) throw new Error('GitHub ' + r.status);
+    const j = await r.json();
+    const asset = (j.assets || []).find((a) => /\.zip$/i.test(a.name || ''));
+    const info = { checked: Date.now(), latest: String(j.tag_name || '').replace(/^v/, ''), name: j.name || '', url: /^https:\/\/github\.com\//.test(j.html_url || '') ? j.html_url : '', zip: asset && /^https:\/\/github\.com\//.test(asset.browser_download_url || '') ? asset.browser_download_url : '' };
+    await chrome.storage.local.set({ update: info });
+    return info;
+  } catch {
+    // échec (hors ligne…) : nouvel essai dans 30 min plutôt que le lendemain
+    const info = { ...cur, checked: Date.now() - 20 * 3600e3 + 30 * 60e3 };
+    await chrome.storage.local.set({ update: info });
+    return info;
+  }
+}
+
 function setupAlarm() {
   chrome.alarms.create('sync', { delayInMinutes: 2, periodInMinutes: 60 });
   chrome.alarms.create('art', { delayInMinutes: 0.2, periodInMinutes: 1 });
+  chrome.alarms.create('update', { delayInMinutes: 1, periodInMinutes: 360 });
 }
 chrome.runtime.onInstalled.addListener(() => {
   setupAlarm();
@@ -1010,6 +1040,7 @@ chrome.runtime.onStartup.addListener(setupAlarm);
 chrome.runtime.onStartup.addListener(() => updateBadge());
 chrome.alarms.onAlarm.addListener((a) => {
   if (a.name === 'sync') runSync(false);
+  if (a.name === 'update') checkUpdate(false);
   if (a.name === 'art') artTick().then(() => genreTick()).then(() => suitesTick()).catch((e) => logError('genres', e));
 });
 
@@ -1152,6 +1183,12 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         } catch (e) {
           return { error: e instanceof AniLimit ? 'AniList est momentanément saturé, réessaie dans une minute.' : 'Recherche impossible : ' + e.message };
         }
+
+      case 'checkUpdate': {
+        const info = await checkUpdate(!!msg.force);
+        const current = chrome.runtime.getManifest().version;
+        return { ...info, current, available: !!(info.latest && newer(info.latest, current)) };
+      }
 
       case 'logError':
         await logError(msg.where || 'page', msg.msg);

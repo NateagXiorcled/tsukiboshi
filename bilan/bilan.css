@@ -131,3 +131,19 @@ main { max-width: 1180px; margin: 0 auto; padding: 20px 32px 64px; display: grid
 
 .hbars.cols2 { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px 28px; }
 @media (max-width: 640px) { .hbars.cols2 { grid-template-columns: 1fr; } }
+
+/* Tournoi */
+.tourney-body { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; }
+.tourney-body .champ { display: flex; align-items: center; gap: 14px; min-width: 0; }
+.tourney-body .champ img, .tourney-body .champ .ph { width: 64px; height: 96px; border-radius: 6px; object-fit: cover; display: grid; place-items: center; font: 700 18px 'Outfit', sans-serif; color: #fff; }
+.tourney-body .champ b { display: block; font-size: 17px; }
+.tourney-body .champ span { color: var(--muted); font-size: 13px; }
+.tourney-body .go { margin-left: auto; display: inline-flex; align-items: center; height: 38px; padding: 0 16px; border-radius: 8px; background: #6c4dff; color: #fff; font-weight: 600; text-decoration: none; }
+.tourney-body .go:hover { background: #7d62ff; }
+.tourney-body .none { color: var(--muted); }
+
+@media (max-width: 640px) {
+  .tabs { gap: 2px; }
+  .tabs a { padding: 6px 7px; font-size: 13px; }
+  .top { gap: 8px; }
+}

@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tournoi · tsukiboshi</title>
+<link rel="icon" href="../icons/icon32.png">
+<link rel="stylesheet" href="../list/list.css">
+<link rel="stylesheet" href="tournoi.css">
+</head>
+<body>
+  <header class="top">
+    <div class="brand">
+      <img src="../icons/logo-small.svg" alt="" class="logo">
+      <span class="word">tsukiboshi</span>
+      <span class="sep"></span>
+      <nav class="tabs"><a href="../list/list.html">Ma liste</a><a href="../recherche/recherche.html">Rechercher</a><a class="on" aria-current="page">Tournoi</a><a href="../bilan/bilan.html">Bilan</a></nav>
+    </div>
+  </header>
+
+  <main>
+    <!-- Accueil -->
+    <section id="home">
+      <div class="t-hero">
+        <div class="crown-big" aria-hidden="true">👑</div>
+        <h1>Le tournoi</h1>
+        <p>Tes titres s'affrontent en duels. À toi de choisir ton préféré à chaque fois, jusqu'au champion.</p>
+      </div>
+      <div class="periods" id="periods" role="list"></div>
+      <div class="palmares" id="palmares" hidden>
+        <h2 class="row-title">Palmarès</h2>
+        <div class="champs" id="champs"></div>
+      </div>
+    </section>
+
+    <!-- Duel -->
+    <section id="duel" hidden>
+      <div class="duel-head">
+        <button class="btn secondary small-btn" id="quit">← Quitter</button>
+        <div><div class="round" id="round"></div><div class="match" id="match"></div></div>
+        <div class="progress" aria-hidden="true"><i id="bar"></i></div>
+      </div>
+      <div class="arena" id="arena"></div>
+      <p class="tip">Clique sur ton préféré · ou flèche ← / →</p>
+      <div class="bracket" id="bracket"></div>
+    </section>
+
+    <!-- Champion -->
+    <section id="champion" hidden>
+      <div class="champ-card" id="champCard"></div>
+      <div class="champ-actions">
+        <button class="btn primary" id="share">Télécharger l'image</button>
+        <button class="btn secondary" id="rate5" hidden>Lui mettre 5 ★</button>
+        <button class="btn secondary" id="again">Nouveau tournoi</button>
+      </div>
+      <div class="bracket" id="finalBracket"></div>
+    </section>
+  </main>
+
+  <script type="module" src="tournoi.js"></script>
+</body>
+</html>

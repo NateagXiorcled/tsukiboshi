@@ -135,3 +135,9 @@ main { padding: 16px; }
 
 .bk-actions { display: flex; gap: 8px; margin-top: 10px; }
 .btn.small { height: 32px; padding: 0 12px; font-size: 12px; }
+
+/* Nouvelle version disponible */
+.update-bar { display: flex; align-items: center; gap: 8px; margin: 0; padding: 9px 16px; background: linear-gradient(90deg, #2a1f5c, #1d1d24); border-bottom: 1px solid #3d2f80; color: #e8e2ff; font: 600 12px 'Inter', sans-serif; text-decoration: none; }
+.update-bar:hover { background: linear-gradient(90deg, #34268a, #24242c); }
+.update-bar .u-dot { width: 8px; height: 8px; border-radius: 50%; background: #ffc94d; box-shadow: 0 0 8px #ffc94d; flex: none; }
+.update-bar .u-go { margin-left: auto; color: #ffc94d; }

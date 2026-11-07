@@ -17,6 +17,7 @@ Extension Chrome qui récupère tout ton historique Crunchyroll, ADN, Netflix, D
 - **Suites à voir** : la nouvelle saison, le film ou l'OAV des animés que tu as finis, avec où les regarder.
 - **À suivre** : reprendre un épisode en cours ou lancer le suivant en un clic.
 - **Alertes de nouveaux épisodes** pour tes simulcasts Crunchyroll.
+- **Tournoi** : tes titres de la semaine, du mois ou de l'année s'affrontent en duels jusqu'au champion, avec une image à partager.
 - **Bilan** : heures regardées, calendrier de tes soirées, top 10, genres préférés, records.
 - **Notes, favoris et avis** sur chaque titre.
 - **Sauvegarde / restauration** pour changer de PC sans rien perdre.

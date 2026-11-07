@@ -13,7 +13,7 @@ const pad = (n) => String(n).padStart(2, '0');
 const dayKey = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 const dayLabel = (d) => d.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
 
-let data = { entries: [], shows: {}, meta: {}, art: {}, genres: {} };
+let data = { entries: [], shows: {}, meta: {}, art: {}, genres: {}, tournaments: [] };
 let period = null; // année (nombre) ou 'all'
 const DAY_CAP = 14 * 3600;
 let capped = 0;
@@ -35,8 +35,8 @@ function evening(e) {
 }
 
 async function load() {
-  const r = await chrome.storage.local.get(['entries', 'shows', 'meta', 'art', 'genres']);
-  data = { entries: Object.values(r.entries || {}).filter((e) => e.date), shows: r.shows || {}, meta: r.meta || {}, art: r.art || {}, genres: r.genres || {} };
+  const r = await chrome.storage.local.get(['entries', 'shows', 'meta', 'art', 'genres', 'tournaments']);
+  data = { entries: Object.values(r.entries || {}).filter((e) => e.date), shows: r.shows || {}, meta: r.meta || {}, art: r.art || {}, genres: r.genres || {}, tournaments: r.tournaments || [] };
   const years = [...new Set(data.entries.map((e) => new Date(e.date).getFullYear()))].sort((a, b) => b - a);
   if (period == null) period = years.includes(new Date().getFullYear()) ? new Date().getFullYear() : years[0] ?? 'all';
   $('period').innerHTML = years.map((y) => `<button role="tab" data-p="${y}" class="${period === y ? 'on' : ''}" aria-selected="${period === y}">${y}</button>`).join('')
@@ -71,6 +71,7 @@ function render() {
   months(list);
   platforms(list);
   top(list);
+  tourney();
   genres(list);
   habits(list);
   records(list);
@@ -184,6 +185,23 @@ function platforms(list) {
       <span class="val">${Math.round((s / total) * 100)} % · ${esc(fmtH(s))}</span>
       <span class="track"><i style="width:${(s / max) * 100}%"></i></span>
     </li>`).join('');
+}
+
+// ---------- Tournoi ----------
+function tourney() {
+  const year = period === 'all' ? new Date().getFullYear() : period;
+  const current = year === new Date().getFullYear();
+  const champs = data.tournaments.filter((t) => String(t.id || '').split(':')[1]?.startsWith(String(year)));
+  const yearChamp = champs.filter((t) => t.period === 'year').pop();
+  const last = yearChamp || champs[champs.length - 1];
+  $('tourneySub').textContent = last ? `${champs.length} tournoi${champs.length > 1 ? 's' : ''} en ${year}` : `Fais s'affronter tes titres de ${year}`;
+  const src = last && posterOf(last.champion.key, []);
+  const h = last ? hue(last.champion.title) : 0;
+  $('tourneyBody').innerHTML = (last
+    ? `<div class="champ">${src ? `<img src="${esc(src)}" alt="" referrerpolicy="no-referrer">` : `<div class="ph" style="background:linear-gradient(135deg,hsl(${h} 45% 34%),hsl(${(h + 40) % 360} 50% 18%))">${esc(last.champion.title.slice(0, 2).toUpperCase())}</div>`}
+        <div><b>👑 ${esc(last.champion.title)}</b><span>Champion ${esc(last.label)}${last.finalist ? ` · finale contre ${esc(last.finalist)}` : ''}</span></div></div>`
+    : `<p class="none">Pas encore de champion pour ${year}.</p>`)
+    + (current ? `<a class="go" href="../tournoi/tournoi.html#year">${yearChamp ? 'Rejouer le tournoi de l\'année' : 'Lancer le tournoi de l\'année'}</a>` : '');
 }
 
 // ---------- Genres ----------
@@ -314,5 +332,5 @@ document.addEventListener('mousemove', (e) => {
 });
 document.addEventListener('mouseleave', () => (tip.hidden = true));
 
-chrome.storage.onChanged.addListener((c, area) => { if (area === 'local' && (c.entries || c.art || c.shows || c.genres)) load(); });
+chrome.storage.onChanged.addListener((c, area) => { if (area === 'local' && (c.entries || c.art || c.shows || c.genres || c.tournaments)) load(); });
 load();

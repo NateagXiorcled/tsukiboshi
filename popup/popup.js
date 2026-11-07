@@ -145,3 +145,11 @@ $('clear').onclick = async () => {
 
 render();
 setInterval(render, 3000);
+
+// nouvelle version publiée sur GitHub ?
+send({ type: 'checkUpdate' }).then((u) => {
+  if (!u || !u.available || !u.url) return;
+  $('updateText').textContent = `Nouvelle version ${u.latest} disponible (tu as la ${u.current})`;
+  $('updateBar').href = u.url;
+  $('updateBar').hidden = false;
+}).catch(() => {});
