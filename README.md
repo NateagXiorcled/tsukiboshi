@@ -25,11 +25,25 @@ Extension Chrome qui récupère tout ton historique Crunchyroll, ADN, Netflix, D
 - **Sauvegarde / restauration** pour changer de PC sans rien perdre.
 - **Mise à jour signalée** : un bandeau prévient quand une nouvelle version est disponible ici.
 
-![Ma liste](docs/ma-liste.png)
+## En images
 
-| Fiche d'un titre | Bilan | Popup |
+![Ma liste : à suivre, suites à voir et affiches](docs/ma-liste.png)
+
+| Fiche d'un titre | Ce soir |
+|---|---|
+| ![Fiche](docs/fiche.png) | ![Ce soir](docs/ce-soir.png) |
+
+| Calendrier des sorties (VO, VOSTFR, VF) | Rechercher un animé |
+|---|---|
+| ![Calendrier](docs/calendrier.png) | ![Rechercher](docs/recherche.png) |
+
+| Où regarder un animé | Tournoi |
+|---|---|
+| ![Fiche recherche](docs/recherche-fiche.png) | ![Tournoi](docs/tournoi.png) |
+
+| Champion du tournoi | Bilan | Popup |
 |---|---|---|
-| ![Fiche](docs/fiche.png) | ![Bilan](docs/bilan.png) | ![Popup](docs/popup.png) |
+| ![Champion](docs/tournoi-champion.png) | ![Bilan](docs/bilan.png) | ![Popup](docs/popup.png) |
 
 ## Installation
 
