@@ -62,6 +62,10 @@ function render() {
     const cls = from === today.getTime() ? 'today' : to <= today.getTime() ? 'past' : '';
     return `<div class="day ${cls}"><h3>${name}<span>${day.getDate()}</span></h3>${its.length ? its.map(item).join('') : '<p class="none">—</p>'}</div>`;
   }).join('');
+  // séries Crunchyroll suivies mais dates VOSTFR / VF pas encore lues : on propose la synchro
+  const crSeries = new Set(data.items.filter((it) => it.platform === 'crunchyroll').map((it) => it.key));
+  const crWithDates = new Set(data.items.filter((it) => it.platform === 'crunchyroll' && it.kind !== 'vo').map((it) => it.key));
+  $('crHint').hidden = !crSeries.size || crWithDates.size >= crSeries.size;
   $('empty').hidden = data.items.length > 0;
   $('week').hidden = !data.items.length;
 }
@@ -74,6 +78,13 @@ $('langChips').onclick = async (e) => {
   data.lang = b.dataset.lang;
   render();
   await chrome.runtime.sendMessage({ type: 'setSettings', settings: { lang: data.lang } });
+};
+$('syncNow').onclick = async (e) => {
+  const b = e.currentTarget;
+  b.disabled = true;
+  b.textContent = 'Synchro en cours… (1 à 2 min)';
+  await chrome.runtime.sendMessage({ type: 'syncNow' }).catch(() => {});
+  b.textContent = 'Synchro lancée ✓';
 };
 chrome.storage.onChanged.addListener((c, area) => { if (area === 'local' && (c.calendar || c.art || c.settings)) load(); });
 chrome.runtime.sendMessage({ type: 'calendarKick' }).catch(() => {});

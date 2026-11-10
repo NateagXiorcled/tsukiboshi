@@ -29,3 +29,6 @@ a.rel-item { color: inherit; text-decoration: none; }
 a.rel-item:hover .t { text-decoration: underline; }
 .legend { color: var(--muted); font-size: 12px; margin: 14px 0 0; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
 @media (max-width: 1000px) { .week { grid-template-columns: 1fr; } .day { min-height: 0; } .day.past:not(.today) .rel-item { display: none; } .day.past:not(.today) .none { display: none; } }
+
+.cr-hint { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin: 0 0 14px; padding: 10px 14px; border-radius: 10px; background: var(--surface); border: 1px dashed var(--line); color: var(--muted); font-size: 13px; }
+.cr-hint .btn { height: 30px; font-size: 12px; margin-left: auto; }
