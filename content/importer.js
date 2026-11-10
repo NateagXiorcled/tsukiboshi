@@ -724,6 +724,20 @@
       const m = html.slice(i, i + 2500).match(/url\\*"\s*:\s*\\*"(https:[^"\\]*(?:\\+u0026[^"\\]*)*)/);
       return m ? m[1].replace(/\\+u0026/g, '&') : '';
     };
+    // image du titre lui-même : cherchée juste après son numéro dans la page.
+    // (le début de la page décrit aussi d'autres titres mis en avant : prendre la 1re image venue donnait la même à tout le monde)
+    const pickFor = (html, type, id) => {
+      const re = new RegExp(`(?:\\\\?["'])${id}(?:\\\\?["'])`, 'g');
+      let m, guard = 0;
+      while ((m = re.exec(html)) && guard++ < 40) {
+        const seg = html.slice(m.index, m.index + 6000);
+        const u = pick(seg, type);
+        if (u) return u;
+      }
+      return '';
+    };
+    const used = new Map(); // image → titres qui l'ont reçue pendant ce passage
+    const imgId = (u) => { try { return new URL(u).pathname; } catch { return u; } };
     let items = {}, n = 0, found = 0;
     const flush = async () => {
       if (!Object.keys(items).length) return;
@@ -736,11 +750,15 @@
         const r = await fetch(new URL(href, location.origin).href, { credentials: 'include' });
         if (r.ok) {
           const html = await r.text();
-          const wide = pick(html, 'ECLIPSE_BILLBOARD');
+          const id = (href.match(/\/title\/(\d+)/) || [])[1];
+          const wide = id ? pickFor(html, 'ECLIPSE_BILLBOARD', id) : '';
           // sinon l'image de partage de la page (toujours présente, même pour un titre retiré du catalogue en France)
           const og = (html.match(/<meta[^>]+property=["']og:image["'][^>]+content=["']([^"']+)/i) || html.match(/content=["']([^"']+)["'][^>]+property=["']og:image/i) || [])[1];
-          const poster = pick(html, 'VERTICAL_BILLBOARD') || pick(html, 'BOXART') || wide || (og ? og.replace(/&amp;/g, '&') : '');
-          if (poster) items[k] = { poster, wide, url: new URL(href, location.origin).href };
+          const poster = (id && (pickFor(html, 'VERTICAL_BILLBOARD', id) || pickFor(html, 'BOXART', id))) || wide || (og ? og.replace(/&amp;/g, '&') : '');
+          // une même image pour plusieurs titres différents = image générique de la page, pas l'affiche du titre
+          const seenBy = used.get(imgId(poster)) || 0;
+          if (poster) used.set(imgId(poster), seenBy + 1);
+          if (poster && seenBy < 2) items[k] = { poster, wide: wide && wide !== poster ? wide : '', url: new URL(href, location.origin).href };
         }
       } catch {}
       status(`Affiches Netflix : ${++n} / ${links.size}…`);

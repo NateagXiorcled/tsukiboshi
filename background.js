@@ -651,13 +651,17 @@ async function artTick() {
       }));
       await withLock(async () => {
         const cur = await getLocal('art', {});
-        for (const [k, v] of Object.entries(found)) {
+        // image Netflix identique pour plusieurs titres : générique, traitée comme « pas d'image officielle »
+        const shared = sharedNetflixArt(cur, Object.entries(found).filter(([, v]) => v.official && v.poster));
+        for (const [k, v0] of Object.entries(found)) {
+          const v = v0.official && shared.has(artImgId(v0.poster)) ? { poster: '', fetched: now, withUrl: true, nfTried: true } : v0;
           // revérification interrompue (source saturée) : on garde l'affiche actuelle et on retente plus tard
           if (!v.poster && v.retryAt && cur[k] && cur[k].poster && cur[k].recheck) cur[k] = { ...cur[k], retryAt: v.retryAt };
           // pas d'image officielle Netflix (ou rien trouvé cette fois) : on garde l'affiche déjà trouvée
           else if (!v.poster && cur[k] && cur[k].poster) cur[k] = { ...cur[k], nfTried: cur[k].nfTried || !!v.nfTried, retryAt: v.retryAt };
           else cur[k] = v;
         }
+        dropSharedNetflixArt(cur, shared);
         await chrome.storage.local.set({ art: cur });
       });
       saveSourceStats();
@@ -1087,6 +1091,30 @@ function setupAlarm() {
   chrome.alarms.create('art', { delayInMinutes: 0.2, periodInMinutes: 1 });
   chrome.alarms.create('update', { delayInMinutes: 1, periodInMinutes: 360 });
 }
+// ---------- Affiches Netflix identiques sur plusieurs titres (image générique prise par erreur) ----------
+const artImgId = (u) => { try { return new URL(u).pathname; } catch { return String(u || ''); } };
+function sharedNetflixArt(art, extra = []) {
+  const use = new Map();
+  const add = (img, k) => { if (!img) return; const id = artImgId(img); if (!use.has(id)) use.set(id, new Set()); use.get(id).add(k); };
+  for (const [k, a] of Object.entries(art)) if (a && a.official && k.startsWith('netflix|')) add(a.poster, k);
+  for (const [k, v] of extra) if (k.startsWith('netflix|')) add(v.poster, k);
+  return new Set([...use].filter(([, keys]) => keys.size >= 3).map(([id]) => id));
+}
+function dropSharedNetflixArt(art, shared) {
+  let n = 0;
+  // retirées : les autres sources reprennent la main, l'image Netflix sera recherchée à nouveau
+  for (const [k, a] of Object.entries(art)) if (a && a.official && k.startsWith('netflix|') && shared.has(artImgId(a.poster))) { delete art[k]; n++; }
+  return n;
+}
+async function repairNetflixArt() {
+  await withLock(async () => {
+    const art = await getLocal('art', {});
+    const n = dropSharedNetflixArt(art, sharedNetflixArt(art));
+    if (n) { await chrome.storage.local.set({ art }); console.log('affiches Netflix génériques retirées :', n); }
+  });
+}
+repairNetflixArt().catch((e) => logError('réparation affiches', e));
+
 chrome.runtime.onInstalled.addListener(() => {
   setupAlarm();
   withLock(async () => {
@@ -1209,10 +1237,14 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         await withLock(async () => {
           const art = await getLocal('art', {});
           const now = Date.now();
-          for (const [k, v] of Object.entries(msg.items || {})) {
+          const items = Object.entries(msg.items || {}).filter(([, v]) => v && v.poster);
+          const shared = sharedNetflixArt(art, items);
+          for (const [k, v] of items) {
+            if (shared.has(artImgId(v.poster))) continue; // même image que d'autres titres : image générique, refusée
             if (art[k] && art[k].poster && art[k].official && !art[k].recheck) continue; // une affiche venue d'ailleurs est remplacée
             art[k] = { poster: v.poster, wide: v.wide || '', source: platformName(k), official: true, fetched: now, url: v.url || '' };
           }
+          dropSharedNetflixArt(art, shared);
           await chrome.storage.local.set({ art });
         });
         scheduleExport();
