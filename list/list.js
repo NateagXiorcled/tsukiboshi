@@ -4,6 +4,8 @@ window.addEventListener('unhandledrejection', (e) => chrome.runtime.sendMessage(
 import { seriesProgress } from '../lib/progress.js';
 import { frenchGenres } from '../lib/artwork.js';
 import { platformOfLink } from '../lib/anilist.js';
+import { installNetflixLinks } from '../lib/nflink.js';
+import { initLayout, isHorizontal } from '../lib/layout.js';
 // tsukiboshi — page « Ma liste »
 const PLATFORMS = { netflix: 'Netflix', crunchyroll: 'Crunchyroll', adn: 'ADN', disney: 'Disney+', prime: 'Prime Video' };
 const COLORS = { netflix: '#e50914', crunchyroll: '#f47521', adn: '#0099e5', disney: '#3a67ff', prime: '#00a8e1' };
@@ -24,7 +26,10 @@ const fmtN = (n) => n.toLocaleString('fr-FR');
 
 let data = { entries: {}, shows: {}, wishlist: {}, meta: {}, art: {}, newEps: {}, genres: {}, suites: [] };
 let shows = [];
-const view = { status: 'all', platform: 'all', q: '', sort: 'recent', genre: '', decade: '' };
+const view = { status: 'all', platform: 'all', kind: 'all', q: '', sort: 'recent', genre: '', decade: '' };
+// type de titre : animé, série ou film (sous-onglets)
+const kindOf = (s) => (s.isMovie ? 'movie' : isAnime(s) ? 'anime' : 'series');
+const inScope = (s) => (view.platform === 'all' || s.platform === view.platform) && (view.kind === 'all' || kindOf(s) === view.kind);
 let openKey = null;
 
 // ---------- Données ----------
@@ -140,6 +145,11 @@ function visual(s) {
   const src = s.poster || s.image || s.wide;
   return src ? img(src, s.title) : placeholder(s.title);
 }
+// affichage horizontal : image large, sinon l'affiche sur fond flou
+function wideVisual(s) {
+  const src = (s.custom ? s.poster : s.wide) || s.poster || s.image;
+  return src ? blurBg(src) + img(src, s.title) : placeholder(s.title);
+}
 const blurBg = (src) => `<div class="blur" style="background-image:url('${esc(safeUrl(src).replace(/['()\\]/g, encodeURIComponent))}')"></div>`;
 function heroVisual(s) {
   const src = (s.custom ? '' : s.wide) || s.poster || s.image;
@@ -173,7 +183,7 @@ function filtered() {
   const q = norm(view.q);
   let list = shows.filter((s) =>
     (view.status === 'all' || (view.status === 'fav' ? s.fav : s.status === view.status)) &&
-    (view.platform === 'all' || s.platform === view.platform) &&
+    inScope(s) &&
     (!view.genre || s.genres.includes(view.genre)) &&
     (!view.decade || decadeOf(s.year) === view.decade) &&
     (!q || norm(s.title).includes(q)));
@@ -182,7 +192,7 @@ function filtered() {
     alpha: (a, b) => a.title.localeCompare(b.title, 'fr'),
     count: (a, b) => b.episodes - a.episodes,
     time: (a, b) => b.secs - a.secs,
-    rating: (a, b) => b.rating - a.rating || b.fav - a.fav || (b.last ?? 0) - (a.last ?? 0),
+    rating: (a, b) => (b.rating || 0) - (a.rating || 0) || b.fav - a.fav || (b.last ?? 0) - (a.last ?? 0),
   }[view.sort];
   return list.sort(by);
 }
@@ -191,7 +201,7 @@ const decadeOf = (y) => (!y ? '' : y < 1990 ? 'old' : String(Math.floor(y / 10) 
 const DECADE_LABEL = (d) => (d === 'old' ? 'Avant 1990' : `Années ${d}`);
 // listes « Genre » et « Époque », avec le nombre de titres (selon la plateforme choisie)
 function renderSelects() {
-  const base = shows.filter((s) => view.platform === 'all' || s.platform === view.platform);
+  const base = shows.filter(inScope);
   const gc = new Map(), dc = new Map();
   for (const s of base) {
     for (const g of s.genres) gc.set(g, (gc.get(g) || 0) + 1);
@@ -210,7 +220,11 @@ $('decade').onchange = (e) => { view.decade = e.target.value; render(); };
 
 function renderChips() {
   renderSelects();
-  const base = shows.filter((s) => view.platform === 'all' || s.platform === view.platform);
+  const byPlat = shows.filter((s) => view.platform === 'all' || s.platform === view.platform);
+  const kinds = [['all', 'Tout'], ['anime', 'Animés'], ['series', 'Séries'], ['movie', 'Films']].map(([id, label]) => [id, label, id === 'all' ? byPlat.length : byPlat.filter((s) => kindOf(s) === id).length]);
+  $('kindTabs').innerHTML = kinds.filter(([id, , n]) => id === 'all' || n || view.kind === id).map(([id, label, n]) =>
+    `<button class="kind ${view.kind === id ? 'on' : ''}" data-kind="${id}" role="tab" aria-selected="${view.kind === id}">${label}<span class="n">${fmtN(n)}</span></button>`).join('');
+  const base = shows.filter(inScope);
   const n = (st) => base.filter((s) => s.status === st).length;
   const items = [['all', 'Tout', base.length], ['progress', 'En cours', n('progress')], ['done', 'Vu', n('done')], ['list', 'Ajouté à la liste', n('list')]];
   const dropped = n('dropped');
@@ -241,7 +255,7 @@ function card(s) {
   const count = !s.items.length || s.isMovie ? '' : s.prog ? ` · ${s.prog.watched}/${s.prog.total} ép.` : ` · ${s.episodes} ép.`;
   const nextTxt = s.prog ? (s.prog.next ? `Prochain : ${epLabel(s.prog.next)}` : s.prog.upToDate ? 'À jour' : s.prog.complete ? 'Terminé' : '') : '';
   return `<article class="card" tabindex="0" data-key="${esc(s.key)}">
-    <div class="thumb">${visual(s)}<span class="badge" style="--s:${st.color}">${st.label}</span>${s.fav ? `<span class="fav-mark" title="Favori">${HEART}</span>` : ''}${bar}</div>
+    <div class="thumb${isHorizontal() ? ' wide' : ''}">${isHorizontal() ? wideVisual(s) : visual(s)}<span class="badge" style="--s:${st.color}">${st.label}</span>${s.fav ? `<span class="fav-mark" title="Favori">${HEART}</span>` : ''}${bar}</div>
     <div class="meta">
       <div class="c-platform"><span class="dot" style="background:${COLORS[s.platform]}"></span>${PLATFORMS[s.platform]}${count}</div>
       <div class="c-title">${esc(s.title)}</div>
@@ -305,7 +319,7 @@ function upNextList() {
   if (!(view.status === 'all' || view.status === 'progress') || view.q || view.genre || view.decade) return [];
   return shows
     .filter((s) => s.status === 'progress' && s.items.length && !s.isMovie && s.last)
-    .filter((s) => (view.platform === 'all' || s.platform === view.platform))
+    .filter(inScope)
     .filter((s) => !(s.prog && !s.prog.next && (s.prog.complete || s.prog.upToDate)))
     .filter((s) => data.newEps[s.key] || !((data.shows[s.key] || {}).hideNext >= s.last)) // masqué jusqu'au prochain visionnage ou au prochain épisode
     // nouveaux épisodes en premier, puis le plus récemment regardé
@@ -387,7 +401,7 @@ function suiteLink(x) {
   return l ? l.url : searchUrl(x.platform, x.title);
 }
 function suiteList() {
-  if (!(view.status === 'all' || view.status === 'progress') || view.q || view.genre || view.decade) return [];
+  if (!(view.status === 'all' || view.status === 'progress') || view.q || view.genre || view.decade || view.kind === 'series') return [];
   return data.suites.filter((x) => view.platform === 'all' || x.platform === view.platform).slice(0, 16);
 }
 function suiteCard(x) {
@@ -400,14 +414,14 @@ function suiteCard(x) {
   return `<article class="up suite" data-id="${x.id}">
     <div class="thumb wide">${x.cover ? blurBg(x.cover) + img(x.cover, x.title) : placeholder(x.title)}
       <span class="badge ${x.upcoming ? 'soon' : 'kind'}">${x.upcoming ? 'Annoncé' : esc(x.kind)}</span>
-      ${link ? `<a class="play" href="${esc(link)}" target="_blank" rel="noopener" aria-label="Regarder ${esc(x.title)}"><span>${PLAY_ICON}</span></a>` : ''}
+      ${link ? `<a class="play" href="${esc(link)}" target="_blank" rel="noopener" aria-label="Regarder ${esc(x.title)}"${/netflix\.com/.test(link) ? ` data-nf-title="${esc(x.title)}"` : ''}><span>${PLAY_ICON}</span></a>` : ''}
       <button class="hide-up" data-hide-suite title="Ne plus proposer" aria-label="Ne plus proposer cette suite"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
     </div>
     <div class="meta">
       <div class="c-platform">Suite de ${esc(x.after)}</div>
       <div class="c-title">${esc(x.title)}</div>
       <div class="c-when">${esc(when)}</div>
-      ${x.upcoming ? '' : `<div class="links">${links.length ? links.slice(0, 3).map((l) => `<a href="${esc(l.url)}" target="_blank" rel="noopener">${l.p ? `<span class="dot" style="background:${COLORS[l.p]}"></span>` : ''}${esc(l.name)}</a>`).join('') : `<span class="none">Pas de lien de streaming connu</span>`}</div>`}
+      ${x.upcoming ? '' : `<div class="links">${links.length ? links.slice(0, 3).map((l) => `<a href="${esc(l.url)}" target="_blank" rel="noopener"${l.p === 'netflix' ? ` data-nf-title="${esc(x.title)}"` : ''}>${l.p ? `<span class="dot" style="background:${COLORS[l.p]}"></span>` : ''}${esc(l.name)}</a>`).join('') : `<span class="none">Pas de lien de streaming connu</span>`}</div>`}
       <button class="add-list" data-add-suite ${inList ? 'disabled' : ''}>${inList ? '✓ Dans ma liste' : '+ Ajouter à ma liste'}</button>
     </div>
   </article>`;
@@ -784,6 +798,7 @@ $('platformChips').onclick = (e) => {
   if (b) { view.platform = b.dataset.platform; render(); }
 };
 $('sort').onchange = (e) => { view.sort = e.target.value; render(); };
+$('kindTabs').onclick = (e) => { const b = e.target.closest('[data-kind]'); if (b) { view.kind = b.dataset.kind; view.genre = ''; render(); } };
 $('q').oninput = (e) => { view.q = e.target.value; render(); };
 $('grid').onclick = (e) => {
   const c = e.target.closest('.card');
@@ -913,3 +928,5 @@ function kickArt() {
   }, 400);
 }
 kickArt();
+installNetflixLinks();
+initLayout(() => render());

@@ -13,7 +13,7 @@
       <img src="../icons/logo-small.svg" alt="" class="logo">
       <span class="word">tsukiboshi</span>
       <span class="sep"></span>
-      <nav class="tabs"><a class="on" aria-current="page">Ma liste</a><a href="../recherche/recherche.html">Rechercher</a><a href="../calendrier/calendrier.html">Calendrier</a><a href="../tournoi/tournoi.html">Tournoi</a><a href="../bilan/bilan.html">Bilan</a></nav>
+      <nav class="tabs"><a class="on" aria-current="page">Ma liste</a><a href="../recherche/recherche.html">Rechercher</a><a href="../saison/saison.html">Saisons</a><a href="../calendrier/calendrier.html">Calendrier</a><a href="../tournoi/tournoi.html">Tournoi</a><a href="../bilan/bilan.html">Bilan</a></nav>
     </div>
     <span class="art-status" id="artStatus" hidden><i></i><span id="artStatusText"></span></span>
     <label class="search">
@@ -28,6 +28,7 @@
     </button>
   </header>
 
+  <div class="kinds" id="kindTabs" role="tablist" aria-label="Type de titre"></div>
   <nav class="filters">
     <div class="chips" id="statusChips"></div>
     <div class="right">
@@ -39,7 +40,7 @@
         <option value="alpha">A → Z</option>
         <option value="count">Le plus d'épisodes</option>
         <option value="time">Le plus de temps</option>
-        <option value="rating">Ma note</option>
+        <option value="rating">Ma note (★ d'abord)</option>
       </select>
     </div>
   </nav>

@@ -1,10 +1,11 @@
 import { buildXlsx } from './xlsx.js';
 import { seriesProgress } from './lib/progress.js';
 import { bestArtwork, searchArtwork, sourceStats, testSources, genresFor } from './lib/artwork.js';
-import { findAnimeIds, fetchMedia, searchAnime, trendingAnime, fetchAiring, AniLimit } from './lib/anilist.js';
+import { findAnimeIds, fetchMedia, searchAnime, trendingAnime, fetchAiring, seasonAnime, platformOfLink, AniLimit } from './lib/anilist.js';
 import { buildCalendar } from './lib/calendar.js';
 import { seasonGroups } from './lib/progress.js';
 import { computeSuites } from './lib/suites.js';
+import { netflixId, netflixSearch } from './lib/nflink.js';
 
 // Erreurs de l'extension, consultables dans la page de diagnostic (sans passer par chrome://extensions)
 async function logError(where, err) {
@@ -63,7 +64,7 @@ let entriesCache = null;
 const getEntries = async () => entriesCache || (entriesCache = await getLocal('entries', {}));
 chrome.storage.onChanged.addListener((c, area) => { if (area === 'local' && c.entries) entriesCache = c.entries.newValue || {}; });
 async function getSettings() {
-  return { autoExport: true, autoSync: true, notify: true, lang: 'both', ...(await getLocal('settings', {})) };
+  return { autoExport: true, autoSync: true, notify: true, lang: 'both', layout: 'vertical', ...(await getLocal('settings', {})) };
 }
 
 const norm = (s) =>
@@ -809,12 +810,16 @@ async function followedGroups() {
     g.last = Math.max(g.last, e.date || 0);
   }
   const now = Date.now();
+  // « Je veux voir » : animés pas encore commencés, suivis dans le calendrier
+  const wishlist = await getLocal('wishlist', {});
+  const wants = Object.values(wishlist).filter((w) => w.want && w.aniId && !map.has(w.key))
+    .map((w) => ({ key: w.key, title: w.title, platform: w.platform, items: [], last: 0, want: true, aniId: w.aniId, meta: null, anime: true }));
   return [...map.values()].filter((g) => {
     const st = shows[g.key] && shows[g.key].status;
     if (st === 'done' || st === 'dropped' || NO_ART.test(g.title)) return false;
     if (g.items.every((e) => !e.episode) && g.platform !== 'adn') return false; // film
     return now - g.last < 90 * DAY || (meta[g.key] && meta[g.key].simulcast);
-  }).map((g) => ({ ...g, meta: meta[g.key] || null, anime: g.platform === 'crunchyroll' || g.platform === 'adn' || ((genres[g.key] || {}).genres || []).includes('Animé') }));
+  }).map((g) => ({ ...g, meta: meta[g.key] || null, anime: g.platform === 'crunchyroll' || g.platform === 'adn' || ((genres[g.key] || {}).genres || []).includes('Animé') })).concat(wants);
 }
 // saison Crunchyroll la plus récente (hors films / OAV) d'une fiche
 function latestCrSeason(meta) {
@@ -853,7 +858,10 @@ async function calendarTick() {
     const [ids, media, crEps, tvShows, settings] = await Promise.all([getLocal('aniIds', {}), getLocal('aniMedia', {}), getLocal('crEpisodes', {}), getLocal('tvShows', {}), getSettings()]);
     // 1. VO des animés : AniList, saison en cours
     const aniOf = new Map();
-    for (const g of groups) if (g.anime && ids[g.key] && ids[g.key].id) aniOf.set(g.key, currentAniId(ids[g.key].id, media));
+    for (const g of groups) {
+      if (g.want) aniOf.set(g.key, g.aniId); // titre choisi exprès : cette fiche-là, pas sa suite
+      else if (g.anime && ids[g.key] && ids[g.key].id) aniOf.set(g.key, currentAniId(ids[g.key].id, media));
+    }
     let airing = await getLocal('aniAiring', {});
     if (aniOf.size && now - (airing._at || 0) > 6 * 3600e3) {
       try { airing = { ...(await fetchAiring([...new Set(aniOf.values())], now - 60 * DAY, now + 120 * DAY)), _at: now }; await chrome.storage.local.set({ aniAiring: airing }); } catch (e) { if (!(e instanceof AniLimit)) logError('calendrier', e); }
@@ -1330,6 +1338,47 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
           return { error: e instanceof AniLimit ? 'AniList est momentanément saturé, réessaie dans une minute.' : 'Fiche introuvable : ' + e.message };
         }
 
+      case 'seasonAnime': {
+        // une saison complète, gardée 12 h (la saison en cours bouge peu)
+        const id = `${msg.year}-${msg.season}`;
+        const cache = await getLocal('seasonCache', {});
+        if (cache[id] && Date.now() - cache[id].at < 12 * 3600e3) return { results: cache[id].list };
+        try {
+          const list = await seasonAnime(msg.season, msg.year);
+          // on garde les 4 dernières saisons consultées
+          const keep = Object.entries(cache).sort((a, b) => b[1].at - a[1].at).slice(0, 3);
+          await chrome.storage.local.set({ seasonCache: { ...Object.fromEntries(keep), [id]: { at: Date.now(), list } } });
+          return { results: list };
+        } catch (e) {
+          if (cache[id]) return { results: cache[id].list, stale: true };
+          return { error: e instanceof AniLimit ? 'AniList ne répond pas pour le moment, réessaie dans une minute.' : 'Saison indisponible.' };
+        }
+      }
+
+      case 'wantAnime': {
+        // « Je veux voir » : dans ma liste + dans le calendrier dès que les dates sont connues
+        const m = msg.media || {};
+        if (!m.id || !m.title) return { ok: false };
+        const platform = msg.platform || ((m.links || []).map((l) => platformOfLink(l.site)).find(Boolean)) || 'crunchyroll';
+        const key = `${platform}|${norm(m.title)}`;
+        const names = new Set([m.title, ...(m.titles || [])].map(norm));
+        const wantKey = (w) => w.aniId === m.id || names.has(norm(w.title));
+        await withLock(async () => {
+          const [wishlist, aniIds, art, airing] = await Promise.all([getLocal('wishlist', {}), getLocal('aniIds', {}), getLocal('art', {}), getLocal('aniAiring', {})]);
+          if (msg.on === false) {
+            for (const [k, w] of Object.entries(wishlist)) if (wantKey(w)) delete wishlist[k];
+          } else {
+            wishlist[key] = { key, title: m.title, platform, added: Date.now(), aniId: m.id, want: true, start: m.start || null };
+            if (!aniIds[key]) aniIds[key] = { id: m.id, fetched: Date.now() };
+            if (m.cover && !(art[key] && art[key].poster)) art[key] = { poster: m.cover, wide: m.banner || '', source: 'AniList', id: 'anilist:' + m.id, fetched: Date.now() };
+          }
+          airing._at = 0; // dates à relire avec ce titre
+          await chrome.storage.local.set({ wishlist, aniIds, art, aniAiring: airing });
+        });
+        calendarTick().catch(() => {});
+        return { ok: true, key };
+      }
+
       case 'trendingAnime': {
         // gardé 6 h en mémoire de session
         const { trending } = await chrome.storage.session.get('trending');
@@ -1340,6 +1389,23 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
           return { results: list };
         } catch (e) {
           return { error: 'Tendances indisponibles pour le moment.' };
+        }
+      }
+
+      case 'netflixResolve': {
+        // lien Netflix d'AniList : on vérifie qu'il mène bien au titre (sinon recherche du titre sur Netflix)
+        const id = netflixId(msg.url);
+        const search = netflixSearch(msg.title);
+        if (!id) return { url: search };
+        const page = `https://www.netflix.com/title/${id}`;
+        try {
+          const ctl = new AbortController();
+          const t = setTimeout(() => ctl.abort(), 8000);
+          const r = await fetch(page, { credentials: 'include', signal: ctl.signal }).finally(() => clearTimeout(t));
+          const ok = r.ok && (r.url.includes(`/title/${id}`) || r.url.includes(`jbv=${id}`));
+          return { url: ok ? page : search };
+        } catch {
+          return { url: page }; // Netflix injoignable : on tente quand même le lien
         }
       }
 

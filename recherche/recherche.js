@@ -1,6 +1,8 @@
 // tsukiboshi — « Rechercher un animé » : fiche, où le regarder, déjà vu ou non, ajout à ma liste (données AniList)
 import { frenchGenres } from '../lib/artwork.js';
 import { platformOfLink } from '../lib/anilist.js';
+import { netflixId, installNetflixLinks } from '../lib/nflink.js';
+import { initLayout, isHorizontal } from '../lib/layout.js';
 
 const PLATFORMS = { netflix: 'Netflix', crunchyroll: 'Crunchyroll', adn: 'ADN', disney: 'Disney+', prime: 'Prime Video' };
 const COLORS = { netflix: '#e50914', crunchyroll: '#f47521', adn: '#0099e5', disney: '#3a67ff', prime: '#00a8e1' };
@@ -22,8 +24,9 @@ async function loadMine() {
   const groups = new Map();
   for (const e of Object.values(r.entries || {})) {
     const k = `${e.platform}|${norm(e.title)}`;
-    const g = groups.get(k) || { key: k, title: e.title, platform: e.platform, eps: new Set(), last: 0 };
+    const g = groups.get(k) || { key: k, title: e.title, platform: e.platform, eps: new Set(), last: 0, nf: '' };
     if (e.episode) g.eps.add(norm(e.episode));
+    if (e.platform === 'netflix' && !g.nf && netflixId(e.url)) g.nf = `https://www.netflix.com/title/${netflixId(e.url)}`; // ton propre lien, sûr
     g.last = Math.max(g.last, e.date || 0);
     groups.set(k, g);
     mine.platforms.add(e.platform);
@@ -52,7 +55,7 @@ function card(m) {
   const seen = seenOf(m);
   const badge = seen ? '<span class="badge mine">Déjà vu</span>' : inWish(m) ? '<span class="badge wish">Dans ma liste</span>' : '';
   return `<article class="card" tabindex="0" data-id="${m.id}">
-    <div class="thumb">${img(m.cover, m.title)}${badge}</div>
+    <div class="thumb${isHorizontal() ? ' wide' : ''}">${isHorizontal() ? (m.banner ? img(m.banner, m.title) : blurBg(m.cover) + img(m.cover, m.title).replace('<img ', '<img class="fit" ')) : img(m.cover, m.title)}${badge}</div>
     <div class="meta">
       <div class="c-platform">${esc(facts(m))}</div>
       <div class="c-title">${esc(m.title)}</div>
@@ -103,6 +106,12 @@ function whereToWatch(m) {
     seen.add(p || l.site);
     out.push({ p, name: PLATFORMS[p] || l.site, url: l.url, mine: mine.platforms.has(p) });
   }
+  // Netflix : le lien de ton historique (déjà vu) vaut mieux que celui d'AniList
+  const own = seenOf(m);
+  if (own && own.nf) {
+    const nf = out.find((l) => l.p === 'netflix');
+    if (nf) nf.url = own.nf; else out.push({ p: 'netflix', name: 'Netflix', url: own.nf, mine: true });
+  }
   // tes plateformes d'abord
   return out.sort((a, b) => b.mine - a.mine);
 }
@@ -129,10 +138,10 @@ function openDetail(m) {
     ${seen ? `<div class="mine-box">✓ Déjà dans ton historique (${esc(PLATFORMS[seen.platform] || seen.platform)}${seen.eps.size ? `, ${seen.eps.size} épisode${seen.eps.size > 1 ? 's' : ''}` : ''}) · <a href="../list/list.html#${encodeURIComponent(seen.key)}">Voir dans Ma liste</a></div>` : ''}
     <h3 class="d-section">Où le regarder</h3>
     <div class="where">${where.length
-      ? where.map((l) => `<a class="${l.mine ? 'mine' : ''}" href="${esc(l.url)}" target="_blank" rel="noopener">${l.p ? `<span class="dot" style="background:${COLORS[l.p]}"></span>` : ''}${esc(l.name)}</a>`).join('')
+      ? where.map((l) => `<a class="${l.mine ? 'mine' : ''}" href="${esc(l.url)}" target="_blank" rel="noopener"${l.p === 'netflix' ? ` data-nf-title="${esc(m.title)}"` : ''}>${l.p ? `<span class="dot" style="background:${COLORS[l.p]}"></span>` : ''}${esc(l.name)}</a>`).join('')
       : '<span class="note">Aucune plateforme connue. Cherche-le directement :</span>' + ['crunchyroll', 'adn', 'netflix'].map((p) => `<a href="${esc(searchOn(p, m.title))}" target="_blank" rel="noopener"><span class="dot" style="background:${COLORS[p]}"></span>${PLATFORMS[p]}</a>`).join('')}</div>
     <div class="d-actions">
-      ${seen ? '' : `<button class="btn primary" id="addWish" ${inWish(m) ? 'disabled' : ''}>${inWish(m) ? '✓ Dans ma liste' : '+ Ajouter à ma liste'}</button>`}
+      ${seen ? '' : `<button class="btn ${inWish(m) ? 'secondary' : 'primary'}" id="addWish" aria-pressed="${inWish(m)}">${inWish(m) ? '✓ Je veux voir' : '☆ Je veux voir'}</button>`}
       <a class="btn secondary" href="https://anilist.co/anime/${m.id}" target="_blank" rel="noopener">Voir sur AniList</a>
     </div>
     ${m.description ? `<p class="d-desc">${esc(m.description)}</p><p class="d-desc-src">Résumé en anglais, source AniList.</p>` : ''}
@@ -171,18 +180,21 @@ $('grid').addEventListener('keydown', (e) => { const c = e.target.closest('.card
 $('drawer').addEventListener('click', async (e) => {
   const rel = e.target.closest('[data-rel]');
   if (rel) return openById(+rel.dataset.rel);
-  if (e.target.closest('#addWish') && current) {
+  const wb = e.target.closest('#addWish');
+  if (wb && current) {
+    // « Je veux voir » : dans Ma liste et, dès que les dates sont connues, dans le Calendrier
+    const on = !inWish(current);
     const where = whereToWatch(current);
     const platform = (where.find((l) => l.p && l.mine) || where.find((l) => l.p) || { p: 'crunchyroll' }).p;
-    const key = `${platform}|${norm(current.title)}`;
-    const { wishlist = {} } = await chrome.storage.local.get('wishlist');
-    wishlist[key] = { key, title: current.title, platform, added: Date.now() };
-    await chrome.storage.local.set({ wishlist });
-    mine.wish.add(norm(current.title));
-    e.target.closest('#addWish').textContent = '✓ Dans ma liste';
-    e.target.closest('#addWish').disabled = true;
-    const c = document.querySelector(`.card[data-id="${current.id}"] .thumb`);
-    if (c && !c.querySelector('.badge')) c.insertAdjacentHTML('beforeend', '<span class="badge wish">Dans ma liste</span>');
+    wb.disabled = true;
+    await send({ type: 'wantAnime', media: current, platform, on });
+    for (const t of current.titles) on ? mine.wish.add(norm(t)) : mine.wish.delete(norm(t));
+    wb.disabled = false;
+    wb.textContent = on ? '✓ Je veux voir' : '☆ Je veux voir';
+    wb.className = `btn ${on ? 'secondary' : 'primary'}`;
+    wb.setAttribute('aria-pressed', String(on));
+    const c = document.querySelector(`.card[data-id="${current.id}"]`);
+    if (c) c.outerHTML = card(current);
   }
 });
 $('drawerClose').onclick = closeDetail;
@@ -193,7 +205,12 @@ document.addEventListener('keydown', (e) => {
   if (e.key === '/' && !typing) { e.preventDefault(); $('q').focus(); }
 });
 
+installNetflixLinks();
+initLayout(() => { if (results.length) $('grid').innerHTML = results.map(card).join(''); });
+
 // recherche passée dans l'adresse (ex. recherche.html#frieren)
 await loadMine();
 const h = decodeURIComponent(location.hash.slice(1));
-if (h) { $('q').value = h; search(h); } else trending();
+const byId = h.match(/^id:(\d+)$/);
+if (byId) { trending(); openById(+byId[1]); }
+else if (h) { $('q').value = h; search(h); } else trending();

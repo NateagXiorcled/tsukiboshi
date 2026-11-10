@@ -66,6 +66,7 @@ async function render() {
   $('autoSync').checked = s.settings.autoSync;
   $('notify').checked = s.settings.notify;
   $('lang').value = s.settings.lang || 'both';
+  $('layout').value = s.settings.layout || 'vertical';
   $('sync').disabled = s.syncing;
   $('sync').classList.toggle('spin', s.syncing);
   $('syncLabel').textContent = s.syncing ? (s.syncCurrent ? `${platforms[s.syncCurrent] || s.syncCurrent}…` : 'En cours') : 'Synchro';
@@ -121,6 +122,7 @@ $('auto').onchange = (e) => send({ type: 'setSettings', settings: { autoExport: 
 $('autoSync').onchange = (e) => send({ type: 'setSettings', settings: { autoSync: e.target.checked } });
 $('notify').onchange = (e) => send({ type: 'setSettings', settings: { notify: e.target.checked } });
 $('lang').onchange = (e) => send({ type: 'setSettings', settings: { lang: e.target.value } });
+$('layout').onchange = (e) => send({ type: 'setSettings', settings: { layout: e.target.value } });
 $('backupBtn').onclick = async (e) => {
   const b = e.currentTarget;
   b.disabled = true;

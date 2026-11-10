@@ -32,3 +32,12 @@ a.rel-item:hover .t { text-decoration: underline; }
 
 .cr-hint { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin: 0 0 14px; padding: 10px 14px; border-radius: 10px; background: var(--surface); border: 1px dashed var(--line); color: var(--muted); font-size: 13px; }
 .cr-hint .btn { height: 30px; font-size: 12px; margin-left: auto; }
+
+/* Affichage horizontal : un jour par ligne, sorties côte à côte */
+[data-layout="horizontal"] .week { grid-template-columns: 1fr; gap: 8px; }
+[data-layout="horizontal"] .day { min-height: 0; display: flex; flex-wrap: wrap; align-items: flex-start; gap: 6px 18px; padding: 12px 14px; }
+[data-layout="horizontal"] .day h3 { flex: 0 0 120px; margin: 6px 0 0; flex-direction: column; gap: 2px; }
+[data-layout="horizontal"] .day h3 span { font-size: 22px; font-weight: 700; color: var(--text); }
+[data-layout="horizontal"] .day .rel-item { flex: 0 1 230px; border-top: 0; padding: 4px 0; }
+[data-layout="horizontal"] .day .none { margin: 6px 0 0; }
+@media (max-width: 720px) { [data-layout="horizontal"] .day h3 { flex-basis: 100%; flex-direction: row; } [data-layout="horizontal"] .day .rel-item { flex-basis: 100%; } }

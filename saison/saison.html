@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Saisons · tsukiboshi</title>
+<link rel="icon" href="../icons/icon32.png">
+<link rel="stylesheet" href="../list/list.css">
+<link rel="stylesheet" href="../recherche/recherche.css">
+<link rel="stylesheet" href="saison.css">
+</head>
+<body>
+  <header class="top">
+    <div class="brand">
+      <img src="../icons/logo-small.svg" alt="" class="logo">
+      <span class="word">tsukiboshi</span>
+      <span class="sep"></span>
+      <nav class="tabs"><a href="../list/list.html">Ma liste</a><a href="../recherche/recherche.html">Rechercher</a><a class="on" aria-current="page">Saisons</a><a href="../calendrier/calendrier.html">Calendrier</a><a href="../tournoi/tournoi.html">Tournoi</a><a href="../bilan/bilan.html">Bilan</a></nav>
+    </div>
+  </header>
+
+  <main>
+    <div class="s-head">
+      <div>
+        <h1 id="title">Saison</h1>
+        <p class="s-sub" id="sub"></p>
+      </div>
+      <div class="s-nav">
+        <button class="icon-btn" id="prev" aria-label="Saison précédente"><svg viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg></button>
+        <button class="btn secondary" id="now">Saison en cours</button>
+        <button class="icon-btn" id="next" aria-label="Saison suivante"><svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></button>
+      </div>
+    </div>
+    <div class="s-filters">
+      <div class="chips small" id="formatChips"></div>
+      <div class="chips small" id="platChips"></div>
+      <select id="sort" aria-label="Trier">
+        <option value="pop">Les plus suivis</option>
+        <option value="start">Date de sortie</option>
+        <option value="score">Mieux notés</option>
+      </select>
+    </div>
+    <section class="grid" id="grid" aria-live="polite"></section>
+    <div class="empty" id="empty" hidden>
+      <img src="../icons/logo.svg" alt="">
+      <h2 id="emptyTitle">Rien pour cette saison</h2>
+      <p id="emptyText"></p>
+    </div>
+    <p class="s-note">Données AniList. « Je veux voir » ajoute l'animé à Ma liste et ses épisodes au Calendrier dès que les dates sont annoncées.</p>
+  </main>
+  <script type="module" src="saison.js"></script>
+</body>
+</html>

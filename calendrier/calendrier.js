@@ -1,5 +1,6 @@
 // tsukiboshi — Calendrier des sorties : VO, VOSTFR et VF des épisodes des séries en cours
 import { langFilter, weekOf } from '../lib/calendar.js';
+import { initLayout } from '../lib/layout.js';
 
 
 const $ = (id) => document.getElementById(id);
@@ -89,3 +90,5 @@ $('syncNow').onclick = async (e) => {
 chrome.storage.onChanged.addListener((c, area) => { if (area === 'local' && (c.calendar || c.art || c.settings)) load(); });
 chrome.runtime.sendMessage({ type: 'calendarKick' }).catch(() => {});
 load();
+
+initLayout();
