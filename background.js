@@ -900,6 +900,7 @@ async function calendarTick() {
 // ---------- synchro discrète des historiques ----------
 const syncWaiters = {};
 let syncing = false;
+let syncCurrent = null; // plateforme en cours de synchro (affichée dans le popup)
 
 async function setPending(tabId, value) {
   const { pending = {} } = await chrome.storage.session.get('pending');
@@ -923,7 +924,7 @@ async function syncOne(platform) {
     let t = 0;
     const tick = setInterval(() => {
       chrome.runtime.getPlatformInfo(); // garde le service worker éveillé
-      if ((t += 10) >= 180) resolve();
+      if ((t += 10) >= 180) { clearInterval(tick); resolve(); } // 3 min au plus par plateforme
     }, 10000);
     syncWaiters[tabId] = () => { clearInterval(tick); resolve(); };
   });
@@ -1040,6 +1041,7 @@ async function runSync(force) {
       // Crunchyroll plus souvent quand des séries en cours de diffusion sont suivies
       const every = p === 'crunchyroll' && (await followedCount()) ? NEW_EPS_EVERY_H : SYNC_EVERY_H;
       if (!force && Date.now() - (sync[p].last || 0) < (every - 0.25) * 3600000) continue;
+      syncCurrent = p;
       await syncOne(p);
       const s2 = await getLocal('sync', {});
       s2[p] = { ...s2[p], last: Date.now() };
@@ -1047,6 +1049,7 @@ async function runSync(force) {
     }
   } finally {
     syncing = false;
+    syncCurrent = null;
   }
 }
 
@@ -1461,6 +1464,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
           settings: await getSettings(),
           sync: await getLocal('sync', {}),
           syncing,
+          syncCurrent,
           platforms: PLATFORMS,
           importable: Object.keys(IMPORT_URLS),
         };

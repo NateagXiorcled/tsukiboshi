@@ -68,7 +68,7 @@ async function render() {
   $('lang').value = s.settings.lang || 'both';
   $('sync').disabled = s.syncing;
   $('sync').classList.toggle('spin', s.syncing);
-  $('syncLabel').textContent = s.syncing ? 'En cours' : 'Synchro';
+  $('syncLabel').textContent = s.syncing ? (s.syncCurrent ? `${platforms[s.syncCurrent] || s.syncCurrent}…` : 'En cours') : 'Synchro';
   $('lastExport').textContent = s.lastExport ? `Mis à jour ${when(s.lastExport, true)}` : 'Pas encore créé';
   $('lastBackup').textContent = s.lastBackup
     ? `Dernière sauvegarde ${when(s.lastBackup, true)} · une copie automatique est faite chaque jour dans Téléchargements / Tsukiboshi`
