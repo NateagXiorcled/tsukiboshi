@@ -47,14 +47,20 @@
 
     if (/\b(aujourd'?hui|today)\b/.test(s)) return shift(0);
     if (/\b(hier|yesterday)\b/.test(s)) return shift(1);
-    let m = s.match(/il y a (\d+|un|une) (minute|heure|jour|semaine|mois|an)/) || s.match(/(\d+|a|an|one) (minute|hour|day|week|month|year)s? ago/);
+    // date exacte d'abord : « Il y a 4 mois (20 juin 2026) » → le 20 juin, pas « environ 4 mois »
+    const exact = absDate(s, preferDMY);
+    if (exact) return exact;
+    const m = s.match(/il y a (\d+|un|une) (minute|heure|jour|semaine|mois|an)/) || s.match(/(\d+|a|an|one) (minute|hour|day|week|month|year)s? ago/);
     if (m) {
       const n = /^\d+$/.test(m[1]) ? +m[1] : 1;
       const unit = { minute: 0, heure: 0, hour: 0, jour: 1, day: 1, semaine: 7, week: 7, mois: 30, month: 30, an: 365, year: 365 }[m[2]];
       return shift(n * unit, unit);
     }
+    return null;
+  }
 
-    m = s.match(/\b(\d{4})-(\d{1,2})-(\d{1,2})\b/);
+  function absDate(s, preferDMY) {
+    let m = s.match(/\b(\d{4})-(\d{1,2})-(\d{1,2})\b/);
     if (m) return mk(+m[1], +m[2], +m[3]);
 
     m = s.match(/\b(\d{1,2})[\/.\-](\d{1,2})[\/.\-](\d{2,4})\b/);

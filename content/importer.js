@@ -10,7 +10,8 @@
     netflix: { page: /\/viewingactivity|\/settings\/viewed/i, run: importNetflix },
     crunchyroll: { page: /\/history/, link: 'a[href*="/watch/"]', series: 'a[href*="/series/"]', run: importCrunchyroll },
     // série ADN : /video/851-akira (numéro devant) — les menus sont /video/genre/…, /video/order/…, /video/type/…
-    adn: { page: /histor/i, link: 'a[href*="/video/"]', linkOk: (a) => adnIsShow(a) },
+    // (nouvelle version du site : /video/<série>/<épisode>, /play/…, /watch/… : tout sauf les menus)
+    adn: { page: /histor/i, link: 'a[href*="/video/"], a[href*="/play/"], a[href*="/watch/"], a[href*="/episode"]', linkOk: (a) => adnIsShow(a), epLink: (a) => adnIsEpisode(a), textCards: true },
     prime: { page: /watch-history|historique/i, link: 'a[href*="/detail/"]', run: importPrime },
   }[VH.platform];
   if (!CONF) return;
@@ -21,8 +22,15 @@
   }
   function adnIsShow(a) {
     try {
-      return /\/video\/\d+-[^/]+/.test(new URL(a.href, location.href).pathname);
+      const path = new URL(a.href, location.href).pathname;
+      if (/\/video\/\d+-[^/]+/.test(path)) return true;
+      if (/\/(play|watch|episodes?)\/[^/]+/.test(path)) return true;
+      return /\/video\/(?!(genre|genres|order|type|types|calendrier|calendar|catalogue|catalog|nouveau|nouveautes|populaire|simulcast|search|recherche)(\/|$))[^/]+/.test(path);
     } catch { return false; }
+  }
+  // lien d'épisode (et pas seulement de la série) : /video/<série>/<épisode>, /play/…, /watch/…
+  function adnIsEpisode(a) {
+    try { return adnDepth(a) >= 2 || /\/(play|watch|episodes?)\/[^/]+/.test(new URL(a.href, location.href).pathname); } catch { return false; }
   }
   function adnDepth(a) {
     try {
@@ -875,7 +883,10 @@
     let el = a;
     while (el.parentElement && el.parentElement !== document.body) {
       const p = el.parentElement;
-      const hrefs = new Set([...p.querySelectorAll(CONF.link)].filter(linkOk).map(hrefOf));
+      const links = [...p.querySelectorAll(CONF.link)].filter(linkOk);
+      // une carte peut avoir un lien vers l'épisode ET un vers la série : seuls les épisodes la distinguent
+      const eps = CONF.epLink ? links.filter(CONF.epLink) : [];
+      const hrefs = new Set((eps.length ? eps : links).map(hrefOf));
       if (hrefs.size > 1) break;
       el = p;
     }
@@ -989,6 +1000,10 @@
         if (seen.has(a)) continue;
         if (!linkOk(a)) { seen.add(a); continue; }
         const card = findCard(a);
+        // lien vers la série dans une carte qui a aussi le lien de l'épisode : la carte est lue par ce dernier
+        if (CONF.epLink && !CONF.epLink(a) && [...card.querySelectorAll(CONF.link)].some((l) => l !== a && linkOk(l) && CONF.epLink(l))) { seen.add(a); continue; }
+        // lien de série isolé (menus, « séries populaires »…) : pas un visionnage tant que la carte n'a ni épisode ni date
+        if (CONF.textCards && !deepest.within(card, EP_RE) && !dateIn(card)) { seen.add(a); continue; }
         const e = cardEntry(card, a);
         if (!e) continue;
         seen.add(a);
@@ -999,7 +1014,34 @@
     };
     await loadAll(collect);
     collect();
+    if (!found.size && CONF.textCards) {
+      // page sans liens reconnus : on lit les cartes d'après leur texte (« Épisode 9 », titre, date)
+      for (const e of textCards()) { const k = `${e.title}|${e.episode}|${e.date ?? ''}`; if (!found.has(k)) found.set(k, e); }
+      log('lecture par le texte des cartes :', found.size);
+    }
+    if (!found.size) {
+      const sample = [...document.querySelectorAll('main a[href], [role="main"] a[href], a[href]')].filter((a) => !inMenu(a)).slice(0, 25).map((a) => (a.getAttribute('href') || '').slice(0, 80));
+      log('aucun visionnage reconnu — liens de la page :', sample, 'textes :', deepest(EP_RE).slice(0, 5).map((el) => clean(el.textContent)));
+    }
     return [...found.values()];
+  }
+
+  // Cartes repérées par leur libellé d'épisode : le plus grand bloc autour qui ne contient qu'un seul « Épisode N »
+  function textCards() {
+    const out = [];
+    for (const label of deepest(EP_RE)) {
+      if (inMenu(label)) continue;
+      let card = label;
+      while (card.parentElement && card.parentElement !== document.body && deepest.within(card.parentElement, EP_RE) <= 1) card = card.parentElement;
+      const ep = clean(label.textContent);
+      const a = card.querySelector('a[href]') || card.closest('a[href]');
+      const fake = a || { href: location.href };
+      const title = seriesGuess(card, fake, ep);
+      if (!title || title === ep) continue;
+      const d = dateIn(card);
+      out.push({ platform, profile, title, episode: ep, date: d?.ts ?? null, prec: d?.prec, progress: progressIn(card), image: imgOf(card), url: a ? a.href : '', source: 'import' });
+    }
+    return out;
   }
 
   // ---------- Prime Video ----------
@@ -1009,14 +1051,15 @@
   const PRIME_EP = /^(?:épisode|episode|ép\.?|ep\.?)\s*(\d+)\s*[:.\-–]?\s*(.*)$/i;
 
   // Éléments dont le texte correspond exactement (parcours des textes : rapide même sur une très longue page)
-  function deepest(re) {
+  function deepest(re, root = document.body) {
     const out = [];
-    const w = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+    const w = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
     for (let n = w.nextNode(); n; n = w.nextNode()) {
       if (n.textContent.length < 80 && re.test(clean(n.textContent)) && n.parentElement) out.push(n.parentElement);
     }
     return out;
   }
+  deepest.within = (root, re) => deepest(re, root).length;
 
   const expanded = new WeakSet();
   function expandPrime() {
