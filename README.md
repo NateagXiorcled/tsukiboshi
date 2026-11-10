@@ -35,6 +35,10 @@ Extension pour **Chrome, Edge, Opera, Brave et Vivaldi** qui récupère tout ton
 |---|---|
 | ![Fiche](docs/fiche.png) | ![Ce soir](docs/ce-soir.png) |
 
+| Saisons : « Je veux voir » | Tier list du tournoi |
+|---|---|
+| ![Saisons](docs/saison.png) | ![Tier list](docs/tier-list.png) |
+
 | Calendrier des sorties (VO, VOSTFR, VF) | Rechercher un animé |
 |---|---|
 | ![Calendrier](docs/calendrier.png) | ![Rechercher](docs/recherche.png) |
