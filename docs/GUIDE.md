@@ -1,4 +1,4 @@
-# Guide complet — tsukiboshi 月星 (v5.13)
+# Guide complet — tsukiboshi 月星 (v5.13.1)
 
 Plateformes : Netflix, Crunchyroll, ADN, Disney+, Prime Video.
 Fonctionne avec n'importe quel compte : l'extension utilise le compte connecté dans Chrome.
@@ -91,7 +91,10 @@ Onglet **Tournoi** : tes titres de la semaine, du mois ou de l'année s'affronte
 - Le **palmarès** garde un champion par période ; celui de l'année apparaît aussi dans le Bilan.
 
 ### Nouvelle version disponible
-Une fois par jour, Tsukiboshi regarde la dernière version publiée sur GitHub. Si elle est plus récente que la tienne, un bandeau apparaît en haut du popup avec le lien de téléchargement.
+Une fois par jour, Tsukiboshi regarde la dernière version publiée sur GitHub. Si elle est plus récente que la tienne, un bandeau apparaît en haut du popup.
+- **Windows** : double-clique sur **Mettre a jour tsukiboshi** dans le dossier de l'extension. Sans aucune fenêtre, il télécharge la dernière version sur GitHub, remplace les fichiers, supprime l'archive et affiche un petit message à la fin. L'extension voit ses nouveaux fichiers et se recharge toute seule (dans la minute, ou tout de suite en ouvrant le popup).
+- Le script (`maj/maj.ps1`) est lisible : il ne contacte que GitHub et ne touche qu'au dossier de l'extension. Tes données ne sont pas dans ce dossier.
+- Mac, Linux : télécharge le zip et remplace le dossier, puis ↻ dans la page des extensions.
 
 ### Statut Abandonné
 En plus de En cours / Vu / Ajouté à la liste : une série abandonnée n'apparaît plus dans « À suivre » ni « Ce soir ». Repris dans l'Excel.
@@ -143,6 +146,7 @@ Les doublons (même épisode vu en direct puis retrouvé dans l'historique) sont
 - Calendrier : séries sans dates reliées en un clic, rythme Crunchyroll pour les séries non reconnues, une fiche par épisode.
 - **À suivre** : seulement les épisodes à lancer, plus de liste sans fin.
 - **Sélection multiple** dans Ma liste pour changer le statut de plusieurs titres.
+- **Mise à jour en un double-clic** (Windows, 5.13.1), sans fenêtre, et rechargement automatique de l'extension.
 - **Synchro** : jamais lancée toute seule sans ton accord (synchro automatique désactivée par défaut, à activer dans les réglages), fenêtres toujours réduites.
 - **Épisodes marqués vus** : bouton « Marquer comme vu » de Crunchyroll pris en compte, et dans la fiche d'un titre : « ✓ S1 E7 vu » ou « Saison x, épisodes a à b ».
 

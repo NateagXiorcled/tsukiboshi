@@ -156,4 +156,7 @@ send({ type: 'checkUpdate' }).then((u) => {
   $('updateText').textContent = `Nouvelle version ${u.latest} disponible (tu as la ${u.current})`;
   $('updateBar').href = u.url;
   $('updateBar').hidden = false;
+  $('updateHelp').hidden = false;
 }).catch(() => {});
+// mise à jour copiée dans le dossier : rechargement tout de suite (sans attendre la minute)
+send({ type: 'reloadIfUpdated' }).catch(() => {});

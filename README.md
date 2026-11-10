@@ -81,8 +81,12 @@ Pour que le fichier Excel se mette à jour sans te poser de question à chaque f
 (`chrome://settings/downloads`, `edge://settings/downloads`, `opera://settings/downloads`, `brave://settings/downloads` ou `vivaldi://settings/downloads`)
 et **désactive l'option qui demande où enregistrer chaque fichier** (son nom varie un peu selon le navigateur : « Toujours demander où enregistrer les fichiers », « Demander où enregistrer chaque fichier avant de télécharger »…).
 
-**Mettre à jour** : télécharge le nouveau zip, remplace le contenu du dossier par le nouveau, puis clique sur ↻ (Recharger) sous tsukiboshi dans la page des extensions.
-Tes données sont gardées. Un bandeau dans l'extension te prévient quand une nouvelle version sort.
+**Mettre à jour** : un bandeau dans l'extension te prévient quand une nouvelle version sort.
+- **Windows** : double-clique sur **`Mettre a jour tsukiboshi`** dans le dossier de l'extension. Tout se fait en arrière-plan, sans fenêtre : la dernière version est téléchargée depuis cette page GitHub, installée dans le dossier, l'archive supprimée, et l'extension se recharge toute seule. Un petit message confirme la fin.
+  La première fois, Windows peut demander une confirmation (fichier téléchargé d'Internet) : clique sur **Exécuter**.
+- **Mac, Linux** (ou à la main) : télécharge le nouveau zip, remplace le contenu du dossier, puis clique sur ↻ (Recharger) sous tsukiboshi dans la page des extensions.
+
+Tes données (historique, notes, listes) sont gardées par le navigateur, pas dans le dossier : une mise à jour n'y touche jamais.
 
 > Au démarrage, Edge, Opera ou Brave peuvent afficher « Désactiver les extensions en mode développeur ? » : clique sur **Conserver** (ou ferme le message), c'est normal pour une extension installée à la main.
 

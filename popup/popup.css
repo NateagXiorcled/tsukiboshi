@@ -141,5 +141,7 @@ main { padding: 16px; }
 .update-bar:hover { background: linear-gradient(90deg, #34268a, #24242c); }
 .update-bar .u-dot { width: 8px; height: 8px; border-radius: 50%; background: #ffc94d; box-shadow: 0 0 8px #ffc94d; flex: none; }
 .update-bar .u-go { margin-left: auto; color: #ffc94d; }
+.update-help { margin: 0; padding: 8px 16px 10px; background: #1d1a2e; border-bottom: 1px solid #3d2f80; color: #c9c2e8; font: 400 11.5px/1.45 'Inter', sans-serif; }
+.update-help b { color: #fff; }
 
 .lang-row select { height: 32px; padding: 0 8px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); color: var(--text); font: 600 12px 'Inter', sans-serif; flex: none; }

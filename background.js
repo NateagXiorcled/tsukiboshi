@@ -1088,6 +1088,21 @@ async function runSync(force) {
   }
 }
 
+// ---------- Nouvelle version copiée dans le dossier (« Mettre a jour tsukiboshi.vbs ») : rechargement automatique ----------
+// le navigateur lit les fichiers d'une extension non empaquetée directement sur le disque : un manifest.json plus récent
+// que la version en cours veut dire que la mise à jour a été copiée → on se recharge pour l'utiliser
+async function reloadIfUpdated() {
+  try {
+    const r = await fetch(chrome.runtime.getURL('manifest.json'), { cache: 'no-store' });
+    const disk = (await r.json()).version;
+    if (disk && newer(disk, chrome.runtime.getManifest().version)) {
+      chrome.runtime.reload();
+      return true;
+    }
+  } catch {}
+  return false;
+}
+
 // ---------- Nouvelle version disponible (Releases GitHub, une fois par jour) ----------
 const RELEASES = 'https://api.github.com/repos/NateagXiorcled/tsukiboshi/releases/latest';
 export function newer(a, b) {
@@ -1218,6 +1233,7 @@ chrome.runtime.onStartup.addListener(() => updateBadge());
 chrome.alarms.onAlarm.addListener((a) => {
   if (a.name === 'sync') runSync(false);
   if (a.name === 'update') checkUpdate(false);
+  if (a.name === 'art') reloadIfUpdated();
   if (a.name === 'art') artTick().then(() => genreTick()).then(() => suitesTick()).then(() => calendarTick()).catch((e) => logError('genres', e));
 });
 
@@ -1322,6 +1338,9 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
 
       case 'restore':
         return await restoreBackup(msg.payload);
+
+      case 'reloadIfUpdated':
+        return { reloading: await reloadIfUpdated() };
 
       case 'linkAnime': {
         // série du calendrier sans dates : l'utilisateur choisit la bonne fiche AniList
