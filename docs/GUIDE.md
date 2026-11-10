@@ -19,8 +19,9 @@ Netflix : refaire l'import pour chaque profil (choisir le profil, puis retourner
 
 ## Ensuite, tout est automatique et discret
 - **Suivi en direct** : chaque vidéo regardée plus d'1 minute sur ce navigateur est ajoutée (date, heure, temps regardé, durée).
-- **Synchro toutes les 6 h** : l'extension relit l'historique de chaque plateforme importée dans une fenêtre réduite,
-  puis la ferme → récupère aussi ce que tu regardes sur la TV / le téléphone.
+- **Synchro** (bouton du popup) : l'extension relit l'historique de chaque plateforme importée dans une fenêtre réduite,
+  puis la ferme → récupère aussi ce que tu regardes sur la TV / le téléphone. Rien ne se lance sans ton accord :
+  la **synchro automatique** (toutes les 6 h) est désactivée par défaut, active-la dans les réglages si tu la veux.
 - Le fichier est réécrit sans bulle de téléchargement :
   `Téléchargements/Tsukiboshi/Tsukiboshi - historique.xlsx`
 
@@ -113,7 +114,7 @@ En haut de Ma liste : les séries en cours, la plus récente d'abord.
 - La croix retire une série de la rangée jusqu'au prochain épisode regardé.
 
 ### Nouveaux épisodes (Crunchyroll)
-- Pour les séries en cours de diffusion que tu suis (regardées ces 4 derniers mois) : vérification toutes les 3 h pendant la synchro discrète.
+- Pour les séries en cours de diffusion que tu suis (regardées ces 4 derniers mois) : vérification à chaque synchro (toutes les 3 h si la synchro automatique est activée).
 - Quand un épisode sort et que tu étais à jour : notification, compteur orange sur l'icône, et la série passe en tête de « À suivre » avec le badge **Nouveau**.
 - Tout disparaît dès que l'épisode est regardé. Réglages → « Alertes nouveaux épisodes » pour couper les notifications.
 
@@ -142,6 +143,7 @@ Les doublons (même épisode vu en direct puis retrouvé dans l'historique) sont
 - Calendrier : séries sans dates reliées en un clic, rythme Crunchyroll pour les séries non reconnues, une fiche par épisode.
 - **À suivre** : seulement les épisodes à lancer, plus de liste sans fin.
 - **Sélection multiple** dans Ma liste pour changer le statut de plusieurs titres.
+- **Synchro** : jamais lancée toute seule sans ton accord (synchro automatique désactivée par défaut, à activer dans les réglages), fenêtres toujours réduites.
 - **Épisodes marqués vus** : bouton « Marquer comme vu » de Crunchyroll pris en compte, et dans la fiche d'un titre : « ✓ S1 E7 vu » ou « Saison x, épisodes a à b ».
 
 ## Nouveautés 5.12

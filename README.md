@@ -10,7 +10,7 @@ Extension pour **Chrome, Edge, Opera, Brave et Vivaldi** qui récupère tout ton
 ## Ce qu'elle fait
 
 - **Import complet** de l'historique de chaque plateforme, en un clic, même avec des milliers d'épisodes.
-- **Suivi automatique** : chaque épisode regardé plus d'une minute est ajouté (date, heure, temps regardé), et une synchro discrète toutes les 6 h récupère aussi ce que tu regardes sur la TV ou le téléphone.
+- **Suivi automatique** : chaque épisode regardé plus d'une minute est ajouté (date, heure, temps regardé), et le bouton **Synchro** récupère aussi ce que tu regardes sur la TV ou le téléphone (ou toutes les 6 h si tu actives la synchro automatique : rien ne se lance sans ton accord).
 - **Fichier Excel** toujours à jour, regroupé par série, avec statut, progression, genres, ta note et ton avis.
 - **Ma liste** : affiches trouvées automatiquement, sous-onglets *Animés / Séries / Films*, statuts *En cours / Vu / Ajouté à la liste*, épisode où tu en es, filtres par plateforme, genre et époque, tri par ta note, **sélection multiple** pour changer le statut de plusieurs titres d'un coup.
 - **Ce soir** : tu dis combien de temps tu as et ce dont tu as envie, il te propose 3 choses à lancer en un clic.
