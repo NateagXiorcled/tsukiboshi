@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Calendrier · tsukiboshi</title>
+<link rel="icon" href="../icons/icon32.png">
+<link rel="stylesheet" href="../list/list.css">
+<link rel="stylesheet" href="calendrier.css">
+</head>
+<body>
+  <header class="top">
+    <div class="brand">
+      <img src="../icons/logo-small.svg" alt="" class="logo">
+      <span class="word">tsukiboshi</span>
+      <span class="sep"></span>
+      <nav class="tabs"><a href="../list/list.html">Ma liste</a><a href="../recherche/recherche.html">Rechercher</a><a class="on" aria-current="page">Calendrier</a><a href="../tournoi/tournoi.html">Tournoi</a><a href="../bilan/bilan.html">Bilan</a></nav>
+    </div>
+  </header>
+
+  <main>
+    <div class="cal-head">
+      <div>
+        <h1 class="row-title" id="weekTitle">Cette semaine</h1>
+        <p class="count" id="weekSub"></p>
+      </div>
+      <div class="cal-nav">
+        <button class="btn secondary" id="prev" aria-label="Semaine précédente">←</button>
+        <button class="btn secondary" id="today">Aujourd'hui</button>
+        <button class="btn secondary" id="next" aria-label="Semaine suivante">→</button>
+      </div>
+    </div>
+    <div class="chips small" id="langChips" role="radiogroup" aria-label="Langue">
+      <button class="chip" data-lang="both">VOSTFR et VF</button>
+      <button class="chip" data-lang="vostfr">VOSTFR</button>
+      <button class="chip" data-lang="vf">VF</button>
+    </div>
+    <section class="week" id="week" aria-live="polite"></section>
+    <p class="legend"><span class="k vo">VO</span> diffusion au Japon (ou d'origine) · <span class="k vostfr">VOSTFR</span> · <span class="k vf">VF</span> · ≈ date estimée d'après les épisodes précédents · ✓ déjà vu</p>
+    <div class="empty" id="empty" hidden>
+      <img src="../icons/logo.svg" alt="">
+      <h2>Rien de prévu pour l'instant</h2>
+      <p id="emptyText">Le calendrier se remplit avec les séries que tu suis en ce moment. Les dates arrivent après la prochaine synchro (quelques minutes).</p>
+    </div>
+  </main>
+  <script type="module" src="calendrier.js"></script>
+</body>
+</html>

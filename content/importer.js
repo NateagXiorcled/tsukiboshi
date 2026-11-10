@@ -289,6 +289,9 @@
       seq: x.season_sequence_number ?? x.season_number ?? null,
       count: x.number_of_episodes ?? x.episode_count ?? null,
       versions: (x.versions || []).map((v) => v.guid || v.id).filter(Boolean),
+      // langue de chaque version (ja-JP = VO sous-titrée, fr-FR = VF) : sert au calendrier des sorties
+      audio: x.audio_locale || '',
+      vers: (x.versions || []).map((v) => ({ id: v.guid || v.id, audio: v.audio_locale || '' })).filter((v) => v.id),
     }));
     if (!d.id && !seasons.length) {
       log('Crunchyroll : fiche série illisible', seriesId, sj && Object.keys(sj), zj && Object.keys(zj));
@@ -354,6 +357,37 @@
     await Promise.all([worker(), worker(), worker(), worker()]);
     if (Object.keys(results).length) await VH.send({ type: 'setMeta', items: results });
     log('Crunchyroll : infos de', Object.keys(results).length, 'séries récupérées', stop ? '(jeton expiré, la suite à la prochaine synchro)' : '');
+  }
+
+  // Dates de sortie des épisodes (VOSTFR = version japonaise, VF = version fr-FR) des séries suivies
+  async function crSeasonEpisodes(id) {
+    const j = await crGet(`/content/v2/cms/seasons/${id}/episodes`);
+    return ((j && (j.data || j.items)) || []).map((x) => ({
+      ep: Number(x.episode_number ?? x.episode),
+      at: Date.parse(x.premium_available_date || x.availability_starts || x.free_available_date || x.episode_air_date || ''),
+    })).filter((x) => Number.isFinite(x.ep) && Number.isFinite(x.at));
+  }
+  async function crFetchEpisodes() {
+    const todo = (await VH.send({ type: 'crEpisodesTodo', max: silent ? 20 : 60 })) || [];
+    if (!todo.length) return;
+    const results = {};
+    for (const t of todo) {
+      const s = t.season;
+      const isJa = (a) => /^ja/i.test(a || '');
+      const isFr = (a) => /^fr/i.test(a || '');
+      const orig = (s.vers || []).find((v) => isJa(v.audio)) || { id: s.id };
+      const fr = (s.vers || []).find((v) => isFr(v.audio)) || (isFr(s.audio) ? { id: s.id } : null);
+      try {
+        const vostfr = await crSeasonEpisodes(orig.id);
+        const vf = fr && fr.id !== orig.id ? await crSeasonEpisodes(fr.id) : [];
+        results[t.key] = { season: s.number, vostfr, vf, fetched: Date.now() };
+      } catch (e) {
+        if (e.message === 'auth') break;
+      }
+      status(`Dates de sortie des épisodes… ${Object.keys(results).length} / ${todo.length}`);
+    }
+    if (Object.keys(results).length) await VH.send({ type: 'setCrEpisodes', items: results });
+    log('Crunchyroll : dates de sortie de', Object.keys(results).length, 'séries');
   }
 
   async function importCrunchyroll() {
@@ -1049,6 +1083,7 @@
       if (platform === 'crunchyroll') {
         const final = statusEl ? statusEl.textContent : '';
         try { await crFetchMeta(); } catch (e) { log('infos séries non récupérées', e); }
+        try { await crFetchEpisodes(); } catch (e) { log('dates de sortie non récupérées', e); }
         if (final) status(final);
       }
       if (platform === 'netflix') {

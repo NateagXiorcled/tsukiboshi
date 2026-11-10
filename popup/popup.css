@@ -141,3 +141,5 @@ main { padding: 16px; }
 .update-bar:hover { background: linear-gradient(90deg, #34268a, #24242c); }
 .update-bar .u-dot { width: 8px; height: 8px; border-radius: 50%; background: #ffc94d; box-shadow: 0 0 8px #ffc94d; flex: none; }
 .update-bar .u-go { margin-left: auto; color: #ffc94d; }
+
+.lang-row select { height: 32px; padding: 0 8px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); color: var(--text); font: 600 12px 'Inter', sans-serif; flex: none; }

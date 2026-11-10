@@ -1,7 +1,9 @@
 import { buildXlsx } from './xlsx.js';
 import { seriesProgress } from './lib/progress.js';
 import { bestArtwork, searchArtwork, sourceStats, testSources, genresFor } from './lib/artwork.js';
-import { findAnimeIds, fetchMedia, searchAnime, trendingAnime, AniLimit } from './lib/anilist.js';
+import { findAnimeIds, fetchMedia, searchAnime, trendingAnime, fetchAiring, AniLimit } from './lib/anilist.js';
+import { buildCalendar } from './lib/calendar.js';
+import { seasonGroups } from './lib/progress.js';
 import { computeSuites } from './lib/suites.js';
 
 // Erreurs de l'extension, consultables dans la page de diagnostic (sans passer par chrome://extensions)
@@ -61,7 +63,7 @@ let entriesCache = null;
 const getEntries = async () => entriesCache || (entriesCache = await getLocal('entries', {}));
 chrome.storage.onChanged.addListener((c, area) => { if (area === 'local' && c.entries) entriesCache = c.entries.newValue || {}; });
 async function getSettings() {
-  return { autoExport: true, autoSync: true, notify: true, ...(await getLocal('settings', {})) };
+  return { autoExport: true, autoSync: true, notify: true, lang: 'both', ...(await getLocal('settings', {})) };
 }
 
 const norm = (s) =>
@@ -789,6 +791,112 @@ async function suitesTick() {
   }
 }
 
+// ---------- Calendrier des sorties (VO, VOSTFR, VF) ----------
+let calendarRunning = false;
+// séries en cours qu'on suit : regardées ces 90 derniers jours (ou en cours de diffusion), pas « Vu » ni « Abandonné »
+async function followedGroups() {
+  const [entries, shows, meta, genres] = await Promise.all([getEntries(), getLocal('shows', {}), getLocal('meta', {}), getLocal('genres', {})]);
+  const map = new Map();
+  for (const e of Object.values(entries)) {
+    const k = seriesKey(e);
+    if (!map.has(k)) map.set(k, { key: k, title: e.title, platform: e.platform, items: [], last: 0 });
+    const g = map.get(k);
+    g.items.push(e);
+    g.last = Math.max(g.last, e.date || 0);
+  }
+  const now = Date.now();
+  return [...map.values()].filter((g) => {
+    const st = shows[g.key] && shows[g.key].status;
+    if (st === 'done' || st === 'dropped' || NO_ART.test(g.title)) return false;
+    if (g.items.every((e) => !e.episode) && g.platform !== 'adn') return false; // film
+    return now - g.last < 90 * DAY || (meta[g.key] && meta[g.key].simulcast);
+  }).map((g) => ({ ...g, meta: meta[g.key] || null, anime: g.platform === 'crunchyroll' || g.platform === 'adn' || ((genres[g.key] || {}).genres || []).includes('Animé') }));
+}
+// saison Crunchyroll la plus récente (hors films / OAV) d'une fiche
+function latestCrSeason(meta) {
+  const groups = seasonGroups(meta).filter((g) => !g.extra);
+  const g = groups[groups.length - 1];
+  if (!g) return null;
+  const s = (meta.seasons || []).find((x) => x.id === g.ids[0]) || {};
+  return { id: s.id, number: g.number, audio: s.audio || '', vers: s.vers || [] };
+}
+// dernière saison (en cours ou annoncée) dans la chaîne des suites AniList
+function currentAniId(id, media) {
+  let cur = media[id], best = id;
+  for (let d = 0; cur && d < 8; d++) {
+    const s = (cur.relations || []).filter((r) => r.rel === 'SEQUEL' && ['TV', 'TV_SHORT', 'ONA'].includes(r.format)).sort((a, b) => (a.year || 0) - (b.year || 0))[0];
+    if (!s || s.status === 'NOT_YET_RELEASED' && !s.start) break;
+    best = s.id;
+    cur = media[s.id];
+  }
+  return best;
+}
+async function tvmazeEpisodes(title) {
+  const ctl = new AbortController(); const t = setTimeout(() => ctl.abort(), 15000);
+  try {
+    const r = await fetch(`https://api.tvmaze.com/singlesearch/shows?q=${encodeURIComponent(title)}&embed=episodes`, { signal: ctl.signal });
+    if (!r.ok) return null;
+    const j = await r.json();
+    return { id: j.id, eps: ((j._embedded && j._embedded.episodes) || []).filter((e) => e.airstamp).map((e) => ({ s: e.season, ep: e.number, at: Date.parse(e.airstamp) })) };
+  } catch { return null; } finally { clearTimeout(t); }
+}
+async function calendarTick() {
+  if (calendarRunning || suitesRunning || artRunning || genreRunning) return;
+  calendarRunning = true;
+  const now = Date.now();
+  try {
+    const groups = await followedGroups();
+    const [ids, media, crEps, tvShows, settings] = await Promise.all([getLocal('aniIds', {}), getLocal('aniMedia', {}), getLocal('crEpisodes', {}), getLocal('tvShows', {}), getSettings()]);
+    // 1. VO des animés : AniList, saison en cours
+    const aniOf = new Map();
+    for (const g of groups) if (g.anime && ids[g.key] && ids[g.key].id) aniOf.set(g.key, currentAniId(ids[g.key].id, media));
+    let airing = await getLocal('aniAiring', {});
+    if (aniOf.size && now - (airing._at || 0) > 6 * 3600e3) {
+      try { airing = { ...(await fetchAiring([...new Set(aniOf.values())], now - 60 * DAY, now + 120 * DAY)), _at: now }; await chrome.storage.local.set({ aniAiring: airing }); } catch (e) { if (!(e instanceof AniLimit)) logError('calendrier', e); }
+    }
+    // 2. VO des séries (Netflix, Prime…) : TVmaze, rafraîchi chaque semaine
+    let n = 0;
+    for (const g of groups) {
+      if (g.anime || n >= 15) continue;
+      const cur = tvShows[g.key];
+      if (cur && now - cur.fetched < 7 * DAY) continue;
+      const got = await tvmazeEpisodes(g.title);
+      tvShows[g.key] = { ...(got || { id: null, eps: [] }), fetched: now };
+      n++;
+    }
+    if (n) await chrome.storage.local.set({ tvShows });
+    // 3. assemblage
+    const items = [];
+    for (const g of groups) {
+      let vo = [];
+      if (g.anime && aniOf.has(g.key)) vo = airing[aniOf.get(g.key)] || [];
+      else if (!g.anime && tvShows[g.key] && tvShows[g.key].eps.length) {
+        const eps = tvShows[g.key].eps;
+        const last = Math.max(...eps.filter((e) => e.at <= now).map((e) => e.s), ...eps.map((e) => (e.at > now ? e.s : 0)));
+        vo = eps.filter((e) => e.s === last).map((e) => ({ ep: e.ep, at: e.at }));
+        g.season = last;
+      }
+      const cr = crEps[g.key] || null;
+      if (!vo.length && !cr) continue;
+      items.push(...buildCalendar(g, { vo, cr, now }));
+    }
+    const prev = await getLocal('calendar', {});
+    await chrome.storage.local.set({ calendar: { items, at: now } });
+    // 4. alerte : un épisode est sorti en VF (réelle, pas estimée) depuis la dernière vérification
+    if (settings.lang !== 'vostfr' && settings.notify) {
+      const since = prev.at || now;
+      for (const it of items) {
+        if (it.kind !== 'vf' || it.estimated || it.seen || it.at > now || it.at <= since) continue;
+        chrome.notifications.create(`vf|${it.key}|${it.ep}`, { type: 'basic', iconUrl: 'icons/icon128.png', title: `${it.title} — épisode ${it.ep} en VF`, message: 'Disponible en version française', priority: 0 }).catch?.(() => {});
+      }
+    }
+  } catch (e) {
+    logError('calendrier', e);
+  } finally {
+    calendarRunning = false;
+  }
+}
+
 // ---------- synchro discrète des historiques ----------
 const syncWaiters = {};
 let syncing = false;
@@ -868,7 +976,8 @@ async function detectNewEpisodes(oldMeta, newItems) {
   if (!fresh.length) return;
   await chrome.storage.local.set({ newEps });
   await updateBadge();
-  if (!(await getSettings()).notify) return;
+  const st = await getSettings();
+  if (!st.notify || st.lang === 'vf') return; // en VF : l'alerte vient du calendrier, quand la VF sort
   for (const x of fresh) {
     const ep = `${x.season != null ? `S${x.season} ` : ''}E${x.ep}`;
     chrome.notifications.create('new|' + x.key, {
@@ -1041,7 +1150,7 @@ chrome.runtime.onStartup.addListener(() => updateBadge());
 chrome.alarms.onAlarm.addListener((a) => {
   if (a.name === 'sync') runSync(false);
   if (a.name === 'update') checkUpdate(false);
-  if (a.name === 'art') artTick().then(() => genreTick()).then(() => suitesTick()).catch((e) => logError('genres', e));
+  if (a.name === 'art') artTick().then(() => genreTick()).then(() => suitesTick()).then(() => calendarTick()).catch((e) => logError('genres', e));
 });
 
 // ---------- messages ----------
@@ -1141,6 +1250,28 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
 
       case 'restore':
         return await restoreBackup(msg.payload);
+
+      case 'crEpisodesTodo': {
+        const [groups, crEps] = await Promise.all([followedGroups(), getLocal('crEpisodes', {})]);
+        const now = Date.now();
+        return groups.filter((g) => g.platform === 'crunchyroll' && g.meta && g.meta.seasons && g.meta.seasons.length)
+          .filter((g) => !crEps[g.key] || now - crEps[g.key].fetched > 3 * 3600e3)
+          .map((g) => ({ key: g.key, season: latestCrSeason(g.meta) })).filter((t) => t.season && t.season.id)
+          .slice(0, msg.max || 40);
+      }
+
+      case 'setCrEpisodes': {
+        await withLock(async () => {
+          const cur = await getLocal('crEpisodes', {});
+          await chrome.storage.local.set({ crEpisodes: { ...cur, ...(msg.items || {}) } });
+        });
+        calendarTick();
+        return { ok: true };
+      }
+
+      case 'calendarKick':
+        calendarTick();
+        return { ok: true };
 
       case 'suitesKick':
         suitesTick();

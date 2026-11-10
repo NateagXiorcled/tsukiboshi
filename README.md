@@ -14,6 +14,7 @@ Extension Chrome qui récupère tout ton historique Crunchyroll, ADN, Netflix, D
 - **Fichier Excel** toujours à jour, regroupé par série, avec statut, progression, genres, ta note et ton avis.
 - **Ma liste** : affiches trouvées automatiquement, statuts *En cours / Vu / Ajouté à la liste*, épisode où tu en es, filtres par plateforme, genre et époque.
 - **Ce soir** : tu dis combien de temps tu as et ce dont tu as envie, il te propose 3 choses à lancer en un clic.
+- **Calendrier des sorties** : date et heure de chaque épisode à venir de tes séries en cours, en VO, VOSTFR et VF.
 - **Suites à voir** : la nouvelle saison, le film ou l'OAV des animés que tu as finis, avec où les regarder.
 - **À suivre** : reprendre un épisode en cours ou lancer le suivant en un clic.
 - **Alertes de nouveaux épisodes** pour tes simulcasts Crunchyroll.

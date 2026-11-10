@@ -65,6 +65,7 @@ async function render() {
   $('auto').checked = s.settings.autoExport;
   $('autoSync').checked = s.settings.autoSync;
   $('notify').checked = s.settings.notify;
+  $('lang').value = s.settings.lang || 'both';
   $('sync').disabled = s.syncing;
   $('sync').classList.toggle('spin', s.syncing);
   $('syncLabel').textContent = s.syncing ? 'En cours' : 'Synchro';
@@ -119,6 +120,7 @@ $('tmdbKey').onchange = async (e) => {
 $('auto').onchange = (e) => send({ type: 'setSettings', settings: { autoExport: e.target.checked } });
 $('autoSync').onchange = (e) => send({ type: 'setSettings', settings: { autoSync: e.target.checked } });
 $('notify').onchange = (e) => send({ type: 'setSettings', settings: { notify: e.target.checked } });
+$('lang').onchange = (e) => send({ type: 'setSettings', settings: { lang: e.target.value } });
 $('backupBtn').onclick = async (e) => {
   const b = e.currentTarget;
   b.disabled = true;

@@ -147,3 +147,11 @@ main { max-width: 1180px; margin: 0 auto; padding: 20px 32px 64px; display: grid
   .tabs a { padding: 6px 7px; font-size: 13px; }
   .top { gap: 8px; }
 }
+
+/* 5 onglets : défilement horizontal sur petit écran plutôt que débordement */
+@media (max-width: 720px) {
+  .brand { min-width: 0; }
+  .tabs { min-width: 0; overflow-x: auto; scrollbar-width: none; }
+  .tabs::-webkit-scrollbar { display: none; }
+  .tabs a { flex: none; }
+}

@@ -1,0 +1,31 @@
+/* Calendrier des sorties : complète list.css */
+main { max-width: 1280px; margin: 0 auto; }
+.cal-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin: 22px 0 6px; }
+.cal-head .row-title { margin: 0; font-size: 26px; }
+.cal-head .count { margin: 4px 0 0; }
+.cal-nav { display: flex; gap: 8px; }
+#langChips { margin: 10px 0 18px; }
+.week { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 10px; }
+.day { min-width: 0; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 10px; min-height: 180px; }
+.day.today { border-color: #6c4dff; box-shadow: inset 0 0 0 1px #6c4dff; }
+.day.past { opacity: .7; }
+.day h3 { margin: 0 0 8px; font-size: 13px; font-weight: 700; display: flex; justify-content: space-between; }
+.day h3 span { color: var(--muted); font-weight: 500; }
+.day .none { color: var(--muted); font-size: 12px; }
+.rel-item { display: grid; grid-template-columns: 36px 1fr; gap: 8px; padding: 7px 0; border-top: 1px solid var(--line); align-items: start; }
+.rel-item:first-of-type { border-top: 0; }
+.rel-item .p { width: 36px; height: 54px; border-radius: 4px; overflow: hidden; background: var(--surface-2); }
+.rel-item .p img, .rel-item .p .ph { width: 100%; height: 100%; object-fit: cover; display: grid; place-items: center; font: 700 12px 'Outfit', sans-serif; color: #fff; }
+.rel-item .t { font-size: 12px; font-weight: 700; line-height: 1.25; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.rel-item .m { margin-top: 3px; display: flex; flex-wrap: wrap; align-items: center; gap: 4px; font-size: 11px; color: var(--muted); }
+.rel-item.seen .t { color: var(--muted); }
+.k { display: inline-flex; align-items: center; height: 17px; padding: 0 5px; border-radius: 4px; font-size: 10px; font-weight: 700; letter-spacing: .2px; color: #fff; }
+.k.vo { background: #4a4a57; }
+.k.vostfr { background: #f47521; }
+.k.vf { background: #3b82f6; }
+.est { font-style: italic; }
+.ok { color: #2fbf71; font-weight: 700; }
+a.rel-item { color: inherit; text-decoration: none; }
+a.rel-item:hover .t { text-decoration: underline; }
+.legend { color: var(--muted); font-size: 12px; margin: 14px 0 0; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+@media (max-width: 1000px) { .week { grid-template-columns: 1fr; } .day { min-height: 0; } .day.past:not(.today) .rel-item { display: none; } .day.past:not(.today) .none { display: none; } }

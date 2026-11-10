@@ -1,4 +1,4 @@
-# Guide complet — tsukiboshi 月星 (v5.10)
+# Guide complet — tsukiboshi 月星 (v5.11)
 
 Plateformes : Netflix, Crunchyroll, ADN, Disney+, Prime Video.
 Fonctionne avec n'importe quel compte : l'extension utilise le compte connecté dans Chrome.
@@ -46,6 +46,15 @@ Pour chaque animé que tu as terminé, Tsukiboshi cherche sur AniList la suite (
 - Rangée **Suites à voir** sous « À suivre », avec les plateformes où la regarder.
 - Les suites annoncées apparaissent avec leur date de sortie prévue.
 - **+ Ajouter à ma liste** la met de côté ; la croix ne la propose plus.
+
+### Calendrier des sorties
+Onglet **Calendrier** : la semaine jour par jour, avec l'heure de sortie de chaque épisode des séries que tu suis.
+- **VO** : diffusion au Japon (AniList) ou diffusion d'origine pour les séries (TVmaze).
+- **VOSTFR** et **VF** : dates réelles du catalogue Crunchyroll (lues pendant la synchro).
+- **≈** : date estimée d'après les épisodes précédents (ex. VF environ 3 semaines après la VOSTFR).
+- ✓ : épisode déjà vu. Flèches pour changer de semaine.
+- Réglage **Je regarde en** (popup ou calendrier) : VOSTFR, VF ou les deux. En VF, l'alerte arrive quand l'épisode sort en VF.
+- Netflix / Prime : la VF sort en général le même jour que la VO, sans date annoncée à l'avance.
 
 ### Tournoi
 Onglet **Tournoi** : tes titres de la semaine, du mois ou de l'année s'affrontent en duels (4, 8 ou 16 participants, ceux où tu as passé le plus de temps).
