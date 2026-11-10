@@ -64,7 +64,7 @@ let entriesCache = null;
 const getEntries = async () => entriesCache || (entriesCache = await getLocal('entries', {}));
 chrome.storage.onChanged.addListener((c, area) => { if (area === 'local' && c.entries) entriesCache = c.entries.newValue || {}; });
 async function getSettings() {
-  return { autoExport: true, autoSync: true, notify: true, lang: 'both', layout: 'vertical', ...(await getLocal('settings', {})) };
+  return { autoExport: true, autoSync: false, notify: true, lang: 'both', layout: 'vertical', ...(await getLocal('settings', {})) };
 }
 
 const norm = (s) =>
@@ -936,12 +936,21 @@ async function setPending(tabId, value) {
 }
 
 async function syncOne(platform) {
+  // fenêtre réduite, jamais au premier plan ; certains navigateurs (Opera…) refusent de la créer réduite :
+  // on la crée sans le focus puis on la réduit aussitôt
   let win;
   try {
     win = await chrome.windows.create({ url: IMPORT_URLS[platform], state: 'minimized', focused: false });
   } catch {
-    win = await chrome.windows.create({ url: IMPORT_URLS[platform], focused: false, width: 500, height: 400 });
+    win = await chrome.windows.create({ url: IMPORT_URLS[platform], focused: false, width: 400, height: 300, left: 0, top: 0 });
   }
+  // vérifié juste après, puis une seconde fois quand la page commence à charger (certains navigateurs la ré-affichent)
+  const keepMinimized = async () => {
+    const w = await chrome.windows.get(win.id).catch(() => null);
+    if (w && w.state !== 'minimized') await chrome.windows.update(win.id, { state: 'minimized', focused: false }).catch(() => {});
+  };
+  await keepMinimized();
+  setTimeout(keepMinimized, 1000);
   const tabId = win.tabs[0].id;
   await chrome.tabs.update(tabId, { muted: true }).catch(() => {});
   await setPending(tabId, { platform, silent: true });
@@ -1139,6 +1148,12 @@ repairNetflixArt().catch((e) => logError('réparation affiches', e));
 
 chrome.runtime.onInstalled.addListener(() => {
   setupAlarm();
+  // 5.13 : la synchro automatique (qui ouvre une fenêtre réduite) ne tourne plus sans l'accord de l'utilisateur
+  withLock(async () => {
+    if (await getLocal('syncConsent', false)) return;
+    const st = await getLocal('settings', {});
+    await chrome.storage.local.set({ settings: { ...st, autoSync: false }, syncConsent: true });
+  }).catch(() => {});
   withLock(async () => {
     const art = await getLocal('art', {});
     for (const k of Object.keys(art)) if (!art[k].poster || art[k].source === 'Wikipédia' || art[k].via) delete art[k];
