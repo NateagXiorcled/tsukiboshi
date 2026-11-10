@@ -144,6 +144,7 @@ function openDetail(m) {
       ${seen ? '' : `<button class="btn ${inWish(m) ? 'secondary' : 'primary'}" id="addWish" aria-pressed="${inWish(m)}">${inWish(m) ? '✓ Je veux voir' : '☆ Je veux voir'}</button>`}
       <a class="btn secondary" href="https://anilist.co/anime/${m.id}" target="_blank" rel="noopener">Voir sur AniList</a>
     </div>
+    ${(m.manga || []).length ? mangaBox(m.manga[0]) : ''}
     ${m.description ? `<p class="d-desc">${esc(m.description)}</p><p class="d-desc-src">Résumé en anglais, source AniList.</p>` : ''}
     ${rels.length ? `<h3 class="d-section">Saisons, films et histoires liées</h3><div class="rels">${rels.map((r) => `
       <button class="rel" data-rel="${r.id}"><div class="thumb">${img(r.cover, r.title)}</div>
@@ -153,6 +154,16 @@ function openDetail(m) {
   $('drawer').classList.add('open');
   $('drawer').setAttribute('aria-hidden', 'false');
   requestAnimationFrame(() => $('drawerClose').focus({ preventScroll: true }));
+}
+// le manga d'origine : où le lire légalement (liens officiels d'AniList)
+function mangaBox(x) {
+  const links = (x.links || []).filter((l) => safeUrl(l.url)).slice(0, 3);
+  const facts = [x.status === 'FINISHED' ? 'Terminé' : x.status === 'RELEASING' ? 'En cours de parution' : '', x.volumes ? `${x.volumes} tomes` : '', x.chapters ? `${x.chapters} chapitres` : ''].filter(Boolean).join(' · ');
+  return `<h3 class="d-section">Le manga</h3>
+    <div class="manga-box">${img(x.cover, x.title).replace('<img ', '<img class="m-cover" ')}
+      <div><b>${esc(x.title)}</b>${facts ? `<div class="m-facts">${esc(facts)}</div>` : ''}
+        <div class="where">${links.map((l) => `<a href="${esc(l.url)}" target="_blank" rel="noopener">${esc(l.site)}</a>`).join('')}<a href="https://anilist.co/manga/${x.id}" target="_blank" rel="noopener">Où le lire</a></div>
+      </div></div>`;
 }
 const searchOn = (p, q) => ({
   crunchyroll: `https://www.crunchyroll.com/search?q=${encodeURIComponent(q)}`,

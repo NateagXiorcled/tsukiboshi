@@ -781,7 +781,7 @@ async function suitesTick() {
     await chrome.storage.local.set({ aniIds: ids });
     // 2. fiches et suites (rafraîchies chaque semaine), puis on suit la chaîne des suites
     const media = await getLocal('aniMedia', {});
-    let want = [...new Set(groups.map((g) => (ids[g.key] || {}).id).filter(Boolean))].filter((id) => !media[id] || now - media[id].fetched > 7 * DAY).slice(0, 60);
+    let want = [...new Set(groups.map((g) => (ids[g.key] || {}).id).filter(Boolean))].filter((id) => !media[id] || !media[id].manga || now - media[id].fetched > 7 * DAY).slice(0, 60); // fiches d'avant la 5.12 : sans le manga
     for (let round = 0; round < 4 && want.length; round++) {
       Object.assign(media, await fetchMedia(want));
       await chrome.storage.local.set({ aniMedia: media });

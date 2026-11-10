@@ -396,7 +396,15 @@ function suiteLinks(x) {
   }
   return out.sort((a, b) => (b.p === x.platform) - (a.p === x.platform));
 }
+// manga : liens de lecture officiels d'AniList, sinon sa fiche AniList (qui liste où le lire)
+const mangaPage = (x) => `https://anilist.co/manga/${x.mangaId}`;
+function mangaLinks(x) {
+  const out = (x.links || []).filter((l) => safeUrl(l.url)).slice(0, 2).map((l) => ({ p: '', name: l.site, url: l.url }));
+  out.push({ p: '', name: 'Où le lire (AniList)', url: mangaPage(x) });
+  return out;
+}
 function suiteLink(x) {
+  if (x.manga) return mangaLinks(x)[0].url;
   const l = suiteLinks(x)[0];
   return l ? l.url : searchUrl(x.platform, x.title);
 }
@@ -405,24 +413,26 @@ function suiteList() {
   return data.suites.filter((x) => view.platform === 'all' || x.platform === view.platform).slice(0, 16);
 }
 function suiteCard(x) {
-  const links = suiteLinks(x);
-  const when = x.upcoming
+  const links = x.manga ? mangaLinks(x) : suiteLinks(x);
+  const when = x.manga
+    ? [x.status === 'FINISHED' ? 'Terminé' : x.status === 'RELEASING' ? 'En cours de parution' : '', x.volumes ? `${x.volumes} tomes` : x.chapters ? `${x.chapters} chapitres` : ''].filter(Boolean).join(' · ') || 'Le manga continue l\'histoire'
+    : x.upcoming
     ? (x.start ? `Sortie prévue : ${x.start[2] && x.start[1] ? MONTHS[x.start[1] - 1] + ' ' : ''}${x.start[0]}` : 'Annoncée, date à venir')
     : [x.year, x.episodes && x.format !== 'MOVIE' ? `${x.episodes} ép.` : ''].filter(Boolean).join(' · ');
   const inList = Object.values(data.wishlist).some((w) => norm(w.title) === norm(x.title));
   const link = !x.upcoming && safeUrl(suiteLink(x));
   return `<article class="up suite" data-id="${x.id}">
     <div class="thumb wide">${x.cover ? blurBg(x.cover) + img(x.cover, x.title) : placeholder(x.title)}
-      <span class="badge ${x.upcoming ? 'soon' : 'kind'}">${x.upcoming ? 'Annoncé' : esc(x.kind)}</span>
-      ${link ? `<a class="play" href="${esc(link)}" target="_blank" rel="noopener" aria-label="Regarder ${esc(x.title)}"${/netflix\.com/.test(link) ? ` data-nf-title="${esc(x.title)}"` : ''}><span>${PLAY_ICON}</span></a>` : ''}
+      <span class="badge ${x.upcoming ? 'soon' : x.manga ? 'kind manga' : 'kind'}">${x.upcoming ? 'Annoncé' : esc(x.kind)}</span>
+      ${link && !x.manga ? `<a class="play" href="${esc(link)}" target="_blank" rel="noopener" aria-label="Regarder ${esc(x.title)}"${/netflix\.com/.test(link) ? ` data-nf-title="${esc(x.title)}"` : ''}><span>${PLAY_ICON}</span></a>` : ''}
       <button class="hide-up" data-hide-suite title="Ne plus proposer" aria-label="Ne plus proposer cette suite"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
     </div>
     <div class="meta">
-      <div class="c-platform">Suite de ${esc(x.after)}</div>
+      <div class="c-platform">${x.manga ? `Après l'animé ${esc(x.after)}` : `Suite de ${esc(x.after)}`}</div>
       <div class="c-title">${esc(x.title)}</div>
       <div class="c-when">${esc(when)}</div>
       ${x.upcoming ? '' : `<div class="links">${links.length ? links.slice(0, 3).map((l) => `<a href="${esc(l.url)}" target="_blank" rel="noopener"${l.p === 'netflix' ? ` data-nf-title="${esc(x.title)}"` : ''}>${l.p ? `<span class="dot" style="background:${COLORS[l.p]}"></span>` : ''}${esc(l.name)}</a>`).join('') : `<span class="none">Pas de lien de streaming connu</span>`}</div>`}
-      <button class="add-list" data-add-suite ${inList ? 'disabled' : ''}>${inList ? '✓ Dans ma liste' : '+ Ajouter à ma liste'}</button>
+      ${x.manga ? '' : `<button class="add-list" data-add-suite ${inList ? 'disabled' : ''}>${inList ? '✓ Dans ma liste' : '+ Ajouter à ma liste'}</button>`}
     </div>
   </article>`;
 }
@@ -479,7 +489,7 @@ function tonightCandidates() {
     }
   }
   for (const x of data.suites) {
-    if (x.upcoming) continue;
+    if (x.upcoming || x.manga) continue; // « Ce soir » : que des choses à regarder
     const movie = x.format === 'MOVIE';
     out.push({ key: 'suite:' + x.id, title: x.title, img: x.cover, genres: frenchGenres(x.genres, 'anime'), mins: movie ? 110 : 24, movie, score: 55, why: `<em>Suite</em> de ${esc(x.after)} · ${esc(x.kind.toLowerCase())}`, link: suiteLink(x), left: movie ? null : x.episodes });
   }
