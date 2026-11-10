@@ -1,7 +1,7 @@
 # tsukiboshi 月星
 
 **Ton journal de visionnage anime, séries et films, tenu à jour tout seul.**
-Extension Chrome qui récupère tout ton historique Crunchyroll, ADN, Netflix, Disney+ et Prime Video depuis la création de ton compte, le range par série dans un fichier Excel et dans une belle page « Ma liste » façon Plex, puis continue discrètement après chaque épisode.
+Extension pour **Chrome, Edge, Opera, Brave et Vivaldi** qui récupère tout ton historique Crunchyroll, ADN, Netflix, Disney+ et Prime Video depuis la création de ton compte, le range par série dans un fichier Excel et dans une belle page « Ma liste » façon Plex, puis continue discrètement après chaque épisode.
 
 ![Démonstration de tsukiboshi](docs/demo.gif)
 
@@ -47,10 +47,37 @@ Extension Chrome qui récupère tout ton historique Crunchyroll, ADN, Netflix, D
 
 ## Installation
 
-1. Télécharge le projet : bouton **Code → Download ZIP**, puis décompresse-le.
-2. Ouvre `chrome://extensions`, active le **Mode développeur** (en haut à droite).
-3. Clique sur **Charger l'extension non empaquetée** et choisis le dossier décompressé.
-4. Dans `chrome://settings/downloads`, désactive « Toujours demander où enregistrer les fichiers ».
+Fonctionne sur tous les navigateurs basés sur Chromium : **Google Chrome, Microsoft Edge, Opera (et Opera GX), Brave et Vivaldi**.
+Firefox et Safari ne sont pas encore pris en charge.
+
+**1. Télécharger l'extension (identique pour tous les navigateurs)**
+- Va dans [**Releases**](https://github.com/NateagXiorcled/tsukiboshi/releases/latest) et télécharge le fichier `tsukiboshi-x.y.z.zip` (le plus léger),
+  ou bouton **Code → Download ZIP** sur cette page.
+- Décompresse-le dans un dossier que tu garderas (par exemple `Documents/tsukiboshi`) : le navigateur lit l'extension depuis ce dossier, il ne faut pas le supprimer.
+
+**2. L'ajouter à ton navigateur**
+
+| Navigateur | Adresse à taper | Puis |
+|---|---|---|
+| **Chrome** | `chrome://extensions` | Active **Mode développeur** (en haut à droite) → **Charger l'extension non empaquetée** |
+| **Edge** | `edge://extensions` | Active **Mode développeur** (dans le menu de gauche) → **Charger l'extension décompressée** |
+| **Opera / Opera GX** | `opera://extensions` | Active **Mode développeur** (en haut à droite) → **Charger l'extension non empaquetée** |
+| **Brave** | `brave://extensions` | Active **Mode développeur** (en haut à droite) → **Charger l'extension non empaquetée** |
+| **Vivaldi** | `vivaldi://extensions` | Active **Mode développeur** (en haut à droite) → **Charger l'extension non empaquetée** |
+
+Choisis le dossier décompressé (celui qui contient `manifest.json`). L'icône 月 apparaît dans la barre d'extensions : épingle-la pour l'avoir toujours sous la main
+(icône puzzle 🧩 → punaise ; sur Opera, icône cube dans la barre latérale ou en haut à droite).
+
+**3. Enregistrement automatique du fichier Excel**
+
+Pour que le fichier Excel se mette à jour sans te poser de question à chaque fois, ouvre les réglages des téléchargements
+(`chrome://settings/downloads`, `edge://settings/downloads`, `opera://settings/downloads`, `brave://settings/downloads` ou `vivaldi://settings/downloads`)
+et **désactive l'option qui demande où enregistrer chaque fichier** (son nom varie un peu selon le navigateur : « Toujours demander où enregistrer les fichiers », « Demander où enregistrer chaque fichier avant de télécharger »…).
+
+**Mettre à jour** : télécharge le nouveau zip, remplace le contenu du dossier par le nouveau, puis clique sur ↻ (Recharger) sous tsukiboshi dans la page des extensions.
+Tes données sont gardées. Un bandeau dans l'extension te prévient quand une nouvelle version sort.
+
+> Au démarrage, Edge, Opera ou Brave peuvent afficher « Désactiver les extensions en mode développeur ? » : clique sur **Conserver** (ou ferme le message), c'est normal pour une extension installée à la main.
 
 Ensuite : clique sur l'icône tsukiboshi → **Importer** à côté de chaque plateforme. Le fichier Excel apparaît dans `Téléchargements/Tsukiboshi/`.
 
@@ -82,4 +109,4 @@ Code sous licence [MIT](LICENSE). Polices Inter et Outfit sous [SIL Open Font Li
 
 ### English
 
-*tsukiboshi* is a Chrome extension that imports your full watch history from Crunchyroll, ADN, Netflix, Disney+ and Prime Video, keeps an Excel log grouped by series, and shows a Plex-like "My list" page with posters, progress, a release calendar (original, subbed and dubbed dates), anime search with where to watch, new-episode alerts, a "tournament" game and yearly stats. Everything stays local in your browser. The interface is in French. Unofficial personal project, not affiliated with any of these services. MIT licensed.
+*tsukiboshi* is a browser extension (Chrome, Edge, Opera, Brave, Vivaldi) that imports your full watch history from Crunchyroll, ADN, Netflix, Disney+ and Prime Video, keeps an Excel log grouped by series, and shows a Plex-like "My list" page with posters, progress, a release calendar (original, subbed and dubbed dates), anime search with where to watch, new-episode alerts, a "tournament" game and yearly stats. Install: download the zip from Releases, unzip it, open the extensions page (`chrome://extensions`, `edge://extensions`, `opera://extensions`…), turn on Developer mode and choose "Load unpacked". Everything stays local in your browser. The interface is in French. Unofficial personal project, not affiliated with any of these services. MIT licensed.

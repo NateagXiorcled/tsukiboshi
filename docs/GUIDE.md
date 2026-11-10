@@ -4,9 +4,12 @@ Plateformes : Netflix, Crunchyroll, ADN, Disney+, Prime Video.
 Fonctionne avec n'importe quel compte : l'extension utilise le compte connecté dans Chrome.
 
 ## Installation
-1. Décompresser le zip, ouvrir `chrome://extensions`
-2. Activer le **Mode développeur** → **Charger l'extension non empaquetée** → choisir ce dossier
-3. Dans `chrome://settings/downloads`, désactiver « Toujours demander où enregistrer les fichiers »
+Navigateurs pris en charge : Chrome, Edge, Opera (et Opera GX), Brave, Vivaldi. Pas Firefox ni Safari pour l'instant.
+1. Décompresser le zip dans un dossier à garder
+2. Ouvrir la page des extensions : `chrome://extensions`, `edge://extensions`, `opera://extensions`, `brave://extensions` ou `vivaldi://extensions`
+3. Activer le **Mode développeur** → **Charger l'extension non empaquetée** (Edge : « décompressée ») → choisir ce dossier
+4. Dans les réglages des téléchargements (`chrome://settings/downloads`, `edge://settings/downloads`, `opera://settings/downloads`…),
+   désactiver la demande d'emplacement à chaque téléchargement
 
 ## 1re utilisation (une seule fois)
 Popup de l'extension → **Importer** à côté de chaque plateforme → **Lancer l'import**. La page Historique s'ouvre, l'import démarre seul
