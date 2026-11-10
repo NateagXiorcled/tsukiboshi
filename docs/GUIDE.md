@@ -56,6 +56,12 @@ Onglet **Calendrier** : la semaine jour par jour, avec l'heure de sortie de chaq
 - Réglage **Je regarde en** (popup ou calendrier) : VOSTFR, VF ou les deux. En VF, l'alerte arrive quand l'épisode sort en VF.
 - Netflix / Prime : la VF sort en général le même jour que la VO, sans date annoncée à l'avance.
 
+### Rechercher un animé
+Onglet **Rechercher** : tape le nom de n'importe quel animé (même si tu ne l'as jamais vu).
+- Fiche complète : résumé, studio, épisodes, note, genres, et toutes ses saisons, films et OAV dans l'ordre.
+- **Où le regarder** : liens directs vers les plateformes qui le proposent (Crunchyroll, ADN, Netflix, Prime Video, Disney+…).
+- Sans recherche, la page montre les **animés du moment**. Ceux déjà dans ta liste sont signalés.
+
 ### Tournoi
 Onglet **Tournoi** : tes titres de la semaine, du mois ou de l'année s'affrontent en duels (4, 8 ou 16 participants, ceux où tu as passé le plus de temps).
 - Clique sur ton préféré, ou utilise les flèches ← / →. Le tableau se remplit au fil des tours.
@@ -110,6 +116,11 @@ Onglet **Bilan** en haut de Ma liste : par année ou depuis le début.
 
 Les doublons (même épisode vu en direct puis retrouvé dans l'historique) sont fusionnés automatiquement.
 
+## Nouveautés 5.11
+- **Calendrier des sorties** VO, VOSTFR et VF, alerte quand un épisode sort en VF, réglage « Je regarde en » dans le popup.
+- **Import Netflix** : ne tourne plus sans fin quand « Voir plus » ne charge plus rien ; fichier CSV reconnu dans toutes les langues ; nouvelle mise en page de l'historique prise en charge ; bouton « Arrêter et garder ce qui est trouvé ».
+- **Synchro** : le popup affiche la plateforme en cours (3 min au plus par plateforme).
+
 ## Nouveautés 5.8 (fiabilité)
 - Un site d'affiches qui ne répond pas ne bloque plus la recherche (délai maximal de 15 s par demande).
 - Plus de recherche en boucle quand un site sature.
@@ -120,6 +131,7 @@ Les doublons (même épisode vu en direct puis retrouvé dans l'historique) sont
 
 ## Limites
 - L'heure exacte n'est connue que pour Netflix et les visionnages suivis en direct ; les autres historiques donnent seulement le jour.
+- Les dates VOSTFR et VF ne sont connues que pour Crunchyroll (après une synchro) ; ailleurs, seule la VO est affichée.
 - Disney+ n'a pas de page d'historique : seuls les visionnages faits sur ce navigateur sont enregistrés.
 - La synchro ne fonctionne que si Chrome est ouvert et que tu es connecté aux sites.
 - Fermer le fichier dans Excel pour qu'il puisse être remplacé.
