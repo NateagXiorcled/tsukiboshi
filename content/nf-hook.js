@@ -12,7 +12,13 @@
   let arm = false; // l'extension a demandé le CSV : on bloque le téléchargement réel
   const blocked = new Set();
   const post = (m) => window.postMessage({ __tsuki: 'nf', ...m }, location.origin);
-  const looksCsv = (t) => /^﻿?"?(title|titre)"?\s*[,;]/i.test(t || '');
+  // fichier Netflix : « Title,Date » (ou l'équivalent dans la langue du compte), deux colonnes titre / date
+  const looksCsv = (t) => {
+    const lines = String(t || '').replace(/^\ufeff/, '').split(/\r?\n/).filter(Boolean);
+    if (!lines.length) return false;
+    if (/^"?(title|titre|titel|titolo|t[ií]tulo|tytu[łl])"?\s*[,;]/i.test(lines[0])) return true;
+    return lines.length > 1 && lines.slice(1, 4).every((l) => /^".*"\s*,\s*"?\d{1,4}[\/.\-]\d{1,2}[\/.\-]\d{1,4}"?\s*$/.test(l));
+  };
   const gotCsv = (t) => {
     if (!looksCsv(t)) return;
     csvText = t;
@@ -83,12 +89,17 @@
     return origDispatch.apply(this, arguments);
   };
 
+  // identifiant de version du site (pour refaire la demande d'historique page par page)
+  const buildId = () => {
+    try { return window.netflix.reactContext.models.serverDefs.data.BUILD_IDENTIFIER || null; } catch { return null; }
+  };
   window.addEventListener('message', (e) => {
     if (e.source !== window || !e.data || e.data.__tsuki !== 'nf-cmd') return;
     if (e.data.cmd === 'replay') {
       caps.forEach((c) => post({ kind: 'capture', ...c }));
       if (csvText) post({ kind: 'csv', text: csvText });
     }
+    if (e.data.cmd === 'build') post({ kind: 'build', build: buildId() });
     if (e.data.cmd === 'arm') arm = true;
     if (e.data.cmd === 'disarm') arm = false;
   });

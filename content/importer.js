@@ -89,6 +89,9 @@
         button:hover { background: #7d62ff; }
         .box.busy button, .box.busy .csv { display: none; }
         .csv { display: block; margin-top: 10px; text-align: center; color: #a593ff; font-size: 12px; cursor: pointer; }
+        .stop { display: none; margin-top: 10px; text-align: center; color: #8b8b98; font-size: 12px; cursor: pointer; text-decoration: underline; }
+        .box.busy .stop { display: block; }
+        .stop:hover { color: #f2f2f5; }
         .csv:hover { text-decoration: underline; }
       </style>
       <div class="box">
@@ -96,9 +99,11 @@
         <div class="st"></div>
         <div class="bar"><i></i></div>
         <button>Importer tout l'historique</button>
+        <a class="stop">Arrêter et garder ce qui est trouvé</a>
         ${platform === 'netflix' ? '<a class="csv">ou importer le fichier CSV « Tout télécharger »</a><input type="file" accept=".csv,text/csv" hidden>' : ''}
       </div>`;
     statusEl = root.querySelector('.st');
+    root.querySelector('.stop').onclick = () => { stopAsked = true; status('Arrêt demandé : enregistrement de ce qui a été trouvé…'); };
     btn = root.querySelector('button');
     btn.onclick = () => runImport(false);
     boxEl = root.querySelector('.box');
@@ -161,20 +166,26 @@
   }
 
   // collect() lit les éléments visibles et retourne le total déjà trouvé
-  async function loadAll(collect) {
-    for (let i = 0; i < 30 && !collect(); i++) await VH.sleep(1000);
+  // Fait défiler la page et clique sur « Voir plus » jusqu'à ce que plus rien de nouveau n'arrive.
+  // Arrêt garanti : 8 tours sans nouvelle ligne (même si le bouton reste affiché), durée maximale, ou bouton « Arrêter ».
+  let stopAsked = false;
+  async function loadAll(collect, { maxMs = 45 * 60e3, label = 'Lecture de l\'historique…' } = {}) {
+    for (let i = 0; i < 30 && !collect() && !stopAsked; i++) await VH.sleep(1000);
     window.scrollTo(0, 0);
     const maxRounds = silent ? 6 : 20000; // en synchro, seuls les plus récents suffisent
+    const t0 = Date.now();
     let stable = 0, lastC = -1;
-    for (let i = 0; i < maxRounds && stable < 6; i++) {
+    for (let i = 0; i < maxRounds && stable < 8 && !stopAsked && Date.now() - t0 < maxMs; i++) {
       const atBottom = scrollStep();
-      const clicked = atBottom && clickShowMore();
+      if (atBottom) clickShowMore();
       await VH.sleep(atBottom ? 1500 : 600);
       const c = collect();
-      stable = atBottom && c === lastC && !clicked ? stable + 1 : 0;
-      lastC = c;
-      status(`Lecture de l'historique… ${c} épisodes trouvés`);
+      stable = atBottom && c <= lastC ? stable + 1 : c > lastC ? 0 : stable;
+      lastC = Math.max(lastC, c);
+      status(`${label} ${c} trouvés`);
     }
+    if (Date.now() - t0 >= maxMs) log('lecture de la page arrêtée : durée maximale atteinte');
+    if (stopAsked) log('lecture de la page arrêtée à la demande');
   }
 
   // ---------- Crunchyroll : lecture des données chargées par le site ----------
@@ -577,9 +588,11 @@
   function netflixCsvEntries(text) {
     const rows = parseCsv(text);
     if (!rows.length) return [];
-    const head = rows[0].map((h) => h.toLowerCase().trim());
-    const ti = head.findIndex((h) => /^(title|titre)$/.test(h));
-    const di = head.findIndex((h) => /^date$/.test(h));
+    const head = rows[0].map((h) => h.replace(/^\ufeff/, '').toLowerCase().trim());
+    let ti = head.findIndex((h) => /^(title|titre|titel|titolo|t[ií]tulo|tytu[łl]|タイトル|제목|标题)$/.test(h));
+    let di = head.findIndex((h) => /^(date|datum|fecha|data|日付|날짜|日期)$/.test(h));
+    // en-têtes inconnus : fichier Netflix = deux colonnes, titre puis date
+    if ((ti < 0 || di < 0) && head.length === 2 && rows.slice(1, 6).every((r) => /\d{1,4}[\/.\-]\d{1,2}[\/.\-]\d{1,4}/.test(r[1] || ''))) { ti = 0; di = 1; }
     if (ti < 0 || di < 0) return [];
     // format de date : jour/mois si une date dépasse 12 en première position
     const dmy = rows.slice(1).some((r) => +((r[di] || '').split(/[\/.\-]/)[0]) > 12) ||
@@ -591,7 +604,7 @@
   }
 
   async function netflixFromCsvLink() {
-    const a = [...document.querySelectorAll('a, button')].find((x) => /tout télécharger|télécharger tout|download all/i.test(x.textContent));
+    const a = nfDownloadLink();
     const href = a && a.getAttribute('href');
     if (!href || /^(#|javascript:)/i.test(href)) return null;
     const r = await fetch(new URL(href, location.href).href, { credentials: 'include' });
@@ -625,7 +638,7 @@
   async function netflixApi(baseUrl) {
     const out = [], seen = new Set();
     const maxPages = silent ? 3 : 5000;
-    for (let pg = 0; pg < maxPages; pg++) {
+    for (let pg = 0; pg < maxPages && !stopAsked; pg++) {
       const u = new URL(baseUrl, location.href);
       u.searchParams.set('pg', pg);
       u.searchParams.set('pgSize', 100);
@@ -651,12 +664,12 @@
   // → sert à l'image officielle Netflix quand aucune affiche n'est trouvée ailleurs
   async function netflixAddLinks(list) {
     try {
-      status('Netflix : récupération des liens des titres…');
-      await loadAll(() => document.querySelectorAll('li.retableRow').length);
+      status('Netflix : récupération des liens des titres (pour les affiches)…');
+      await loadAll(() => netflixRows().length, { maxMs: 3 * 60e3, label: 'Netflix : liens des titres…' });
       const key = (t) => String(t || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, ' ').trim();
       const links = new Map();
-      for (const row of document.querySelectorAll('li.retableRow')) {
-        const a = row.querySelector('.title a');
+      for (const row of netflixRows()) {
+        const a = row.querySelector('.title a') || row.querySelector('a[href*="/title/"]');
         if (!a || !/\/title\/\d+/.test(a.getAttribute('href') || '')) continue;
         const k = key(netflixTitle(a.textContent || '').title);
         if (k && !links.has(k)) links.set(k, new URL(a.getAttribute('href'), location.origin).href.replace(/\?.*$/, ''));
@@ -680,7 +693,7 @@
     const norm = (t) => String(t || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, ' ').trim();
     const links = new Map();
     const scan = () => {
-      for (const a of document.querySelectorAll('li.retableRow .title a')) {
+      for (const a of netflixRows().map((r) => r.querySelector('.title a') || r.querySelector('a[href*="/title/"]')).filter(Boolean)) {
         const href = a.getAttribute('href') || '';
         if (!/\/title\/\d+/.test(href)) continue;
         // titre de la série (« Lie to Me : Saison 1 : … ») ou titre complet d'un film (« Batman v Superman : L'Aube de la justice »)
@@ -692,11 +705,17 @@
       return links.size;
     };
     // on charge l'historique (« Voir plus ») tant qu'il reste des titres sans lien
+    // arrêt : tous repérés, plus de nouvelles lignes après 8 clics, 4 minutes au plus, ou bouton « Arrêter »
     scan();
-    for (let i = 0; i < (silent ? 40 : 400) && links.size < want.size; i++) {
+    const t0 = Date.now();
+    let still = 0, lastRows = netflixRows().length;
+    for (let i = 0; i < (silent ? 40 : 400) && links.size < want.size && still < 8 && !stopAsked && Date.now() - t0 < 4 * 60e3; i++) {
       if (!clickShowMore()) break;
       await VH.sleep(1200);
       scan();
+      const rows = netflixRows().length;
+      still = rows > lastRows ? 0 : still + 1;
+      lastRows = rows;
       status(`Affiches Netflix : ${links.size} / ${want.size} titres repérés…`);
     }
     const pick = (html, type) => {
@@ -733,6 +752,20 @@
     log('Netflix : affiches officielles', found, '/', want.size, 'titres sans affiche', notFound.length ? '— sans lien dans l\'historique : ' + notFound.slice(0, 15).join(', ') : '');
   }
 
+  // lignes de l'historique Netflix, quelle que soit la version de la page
+  function netflixRows() {
+    const old = document.querySelectorAll('li.retableRow');
+    if (old.length) return [...old];
+    const rows = new Set();
+    for (const a of document.querySelectorAll('main a[href*="/title/"], [role="main"] a[href*="/title/"], ul a[href*="/title/"]')) {
+      const row = a.closest('li, [role="row"], tr') || a.parentElement;
+      if (row && !inMenu(row)) rows.add(row);
+    }
+    return [...rows];
+  }
+  const NF_DL = /tout t[ée]l[ée]charger|t[ée]l[ée]charger tout|download all|descargar todo|alle herunterladen|scarica tutto|baixar tudo|transferir tudo|alles downloaden|pobierz wszystko|すべてダウンロード/i;
+  const nfDownloadLink = () => [...document.querySelectorAll('a, button')].find((x) => NF_DL.test(x.textContent || '') || NF_DL.test(x.getAttribute('aria-label') || '') || /viewingactivitycsv|\.csv(\?|$)/i.test(x.getAttribute('href') || ''));
+
   async function importNetflix() {
     const caps = [];
     let csv = null;
@@ -755,8 +788,15 @@
       }
       const urls = [];
       if (apiCap()) urls.push(apiCap().url);
-      const m = document.documentElement.innerHTML.match(/BUILD_IDENTIFIER\\?"\s*:\s*\\?"([a-zA-Z0-9]+)/);
-      if (m) urls.push(`/api/shakti/${m[1]}/viewingactivity`);
+      // identifiant de version du site : lu dans les réglages de la page (plus fiable), sinon dans son code
+      const build = await new Promise((res) => {
+        const on = (e) => { if (e.source === window && e.data && e.data.__tsuki === 'nf' && e.data.kind === 'build') { window.removeEventListener('message', on); res(e.data.build); } };
+        window.addEventListener('message', on);
+        cmd('build');
+        setTimeout(() => { window.removeEventListener('message', on); res(null); }, 1500);
+      });
+      const m = build || (document.documentElement.innerHTML.match(/BUILD_IDENTIFIER\\?"\s*:\s*\\?"([a-zA-Z0-9]+)/) || [])[1];
+      if (m) urls.push(`/api/shakti/${m}/viewingactivity`);
       for (const u of urls) {
         try {
           const out = await netflixApi(u);
@@ -773,11 +813,12 @@
           const direct = await netflixFromCsvLink();
           if (direct) return await netflixAddLinks(direct);
         } catch {}
-        const link = [...document.querySelectorAll('a, button')].find((x) => /tout télécharger|télécharger tout|download all/i.test(x.textContent));
+        const link = nfDownloadLink();
+        if (!link) log('Netflix : bouton « Tout télécharger » introuvable sur la page');
         if (link) {
           cmd('arm');
           link.click();
-          for (let i = 0; i < 120 && !csv; i++) {
+          for (let i = 0; i < 120 && !csv && !stopAsked; i++) {
             status(`Netflix prépare le fichier « Tout télécharger »… (${i} s)`);
             await VH.sleep(1000);
           }
@@ -794,10 +835,10 @@
     }
 
     // 3) lecture de la page en cliquant sur "Voir plus"
-    await loadAll(() => document.querySelectorAll('li.retableRow').length);
-    return netflixMovies([...document.querySelectorAll('li.retableRow')].map((row) => {
-      const a = row.querySelector('.title a');
-      const d = VH.parseDate(row.querySelector('.date')?.textContent);
+    await loadAll(() => netflixRows().length, { label: 'Lecture de l\'historique Netflix…' });
+    return netflixMovies(netflixRows().map((row) => {
+      const a = row.querySelector('.title a') || row.querySelector('a[href*="/title/"]');
+      const d = VH.parseDate((row.querySelector('.date') || row.querySelector('time') || row).textContent);
       return {
         platform, profile,
         ...netflixTitle(a?.textContent || row.querySelector('.title')?.textContent || ''),
@@ -1068,6 +1109,7 @@
       return;
     }
     running = true;
+    stopAsked = false;
     if (btn) btn.disabled = true;
     if (boxEl) boxEl.classList.add('busy');
     let count = 0;
