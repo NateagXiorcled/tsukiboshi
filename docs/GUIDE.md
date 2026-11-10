@@ -1,4 +1,4 @@
-# Guide complet — tsukiboshi 月星 (v5.11)
+# Guide complet — tsukiboshi 月星 (v5.12)
 
 Plateformes : Netflix, Crunchyroll, ADN, Disney+, Prime Video.
 Fonctionne avec n'importe quel compte : l'extension utilise le compte connecté dans Chrome.
@@ -26,7 +26,8 @@ Netflix : refaire l'import pour chaque profil (choisir le profil, puis retourner
 
 ## Ma liste
 Popup → **Ma liste** : une page avec toutes tes séries et tous tes films en vignettes.
-- Filtres par statut (**En cours**, **Vu**, **Ajouté à la liste**) et par plateforme, recherche (touche `/`), tri.
+- Sous-onglets **Tout / Animés / Séries / Films**, filtres par statut (**En cours**, **Vu**, **Ajouté à la liste**) et par plateforme, recherche (touche `/`), tri (dont **Ma note** : les 5 ★ d'abord).
+- Bouton à droite des onglets (ou réglage **Affichage** du popup) : **vertical** (affiches en hauteur, jours du calendrier en colonnes) ou **horizontal** (images larges, un jour par ligne). Le choix vaut pour toute l'app.
 - Chaque vignette montre où tu en es (dernier épisode vu) et quand.
 - Clic sur une vignette : statut modifiable, statistiques, bouton pour rouvrir le dernier épisode, liste de tous les épisodes vus.
 - Affiches automatiques (comme Plex), recherchées selon le type du titre (film, série, animé, spectacle) :
@@ -49,6 +50,7 @@ Pour chaque animé que tu as terminé, Tsukiboshi cherche sur AniList la suite (
 - Rangée **Suites à voir** sous « À suivre », avec les plateformes où la regarder.
 - Les suites annoncées apparaissent avec leur date de sortie prévue.
 - **+ Ajouter à ma liste** la met de côté ; la croix ne la propose plus.
+- Animé terminé **sans suite animée** : le **manga** d'origine est proposé (badge « Manga »), avec ses liens de lecture officiels (MANGA Plus, Webtoon…) et sa fiche AniList, qui liste où le lire en France.
 
 ### Calendrier des sorties
 Onglet **Calendrier** : la semaine jour par jour, avec l'heure de sortie de chaque épisode des séries que tu suis.
@@ -59,16 +61,28 @@ Onglet **Calendrier** : la semaine jour par jour, avec l'heure de sortie de chaq
 - Réglage **Je regarde en** (popup ou calendrier) : VOSTFR, VF ou les deux. En VF, l'alerte arrive quand l'épisode sort en VF.
 - Netflix / Prime : la VF sort en général le même jour que la VO, sans date annoncée à l'avance.
 
+### Saisons
+Onglet **Saisons** : tous les animés d'une saison (hiver, printemps, été, automne), comme un calendrier saisonnier.
+- Flèches pour passer à la saison précédente ou suivante, **Saison en cours** pour revenir.
+- Filtres **Séries / Films / ONA, OAV, spéciaux**, par plateforme (Crunchyroll, ADN, Netflix…), tri par popularité, date de sortie ou note.
+- Chaque carte : date de début (ou prochain épisode), studio, genres, plateformes, et **☆ Je veux voir**.
+- **Je veux voir** : l'animé rejoint Ma liste (« Ajouté à la liste ») et ses épisodes apparaissent dans le **Calendrier** dès que les dates sont annoncées. Re-cliquer l'enlève.
+- Clic sur une carte : sa fiche complète dans Rechercher.
+
 ### Rechercher un animé
 Onglet **Rechercher** : tape le nom de n'importe quel animé (même si tu ne l'as jamais vu).
 - Fiche complète : résumé, studio, épisodes, note, genres, et toutes ses saisons, films et OAV dans l'ordre.
 - **Où le regarder** : liens directs vers les plateformes qui le proposent (Crunchyroll, ADN, Netflix, Prime Video, Disney+…).
 - Sans recherche, la page montre les **animés du moment**. Ceux déjà dans ta liste sont signalés.
+- **Je veux voir** (même effet que dans Saisons) et encadré **Le manga** quand l'animé est adapté d'un manga.
+- Lien Netflix : si tu as déjà vu le titre, c'est ton propre lien ; sinon le lien est vérifié au clic, et si Netflix ne le propose pas en France, la recherche Netflix du titre s'ouvre à la place.
 
 ### Tournoi
 Onglet **Tournoi** : tes titres de la semaine, du mois ou de l'année s'affrontent en duels (4, 8 ou 16 participants, ceux où tu as passé le plus de temps).
 - Clique sur ton préféré, ou utilise les flèches ← / →. Le tableau se remplit au fil des tours.
 - Le champion : couronne, parcours (« a battu… »), **Télécharger l'image** (carte 1080 × 1350 à partager) et **Lui mettre 5 ★**.
+- **Tier list** à la fin de chaque tournoi : S (champion), A (finaliste), B (demi-finales), C (quarts), D (huitièmes), avec **Télécharger la tier list** (image à partager).
+- **Méga-tournoi** : dès 4 champions du mois dans l'année, les champions de chaque mois s'affrontent (les mieux placés passent le premier tour si le tableau n'est pas complet), avec la tier list de l'année.
 - Le **palmarès** garde un champion par période ; celui de l'année apparaît aussi dans le Bilan.
 
 ### Nouvelle version disponible
@@ -118,6 +132,14 @@ Onglet **Bilan** en haut de Ma liste : par année ou depuis le début.
 - **Résumé** : totaux par plateforme.
 
 Les doublons (même épisode vu en direct puis retrouvé dans l'historique) sont fusionnés automatiquement.
+
+## Nouveautés 5.12
+- Onglet **Saisons** (calendrier saisonnier) et bouton **Je veux voir** relié au Calendrier.
+- Ma liste : sous-onglets **Animés / Séries / Films**, tri par ta note.
+- Affichage **vertical ou horizontal** pour toute l'app.
+- Tournoi : **tier list** et **méga-tournoi** des champions du mois.
+- **Suite en manga** quand un animé est fini (liens de lecture officiels).
+- Lien Netflix de la Recherche vérifié (plus d'atterrissage sur l'accueil Netflix).
 
 ## Nouveautés 5.11
 - **Calendrier des sorties** VO, VOSTFR et VF, alerte quand un épisode sort en VF, réglage « Je regarde en » dans le popup.

@@ -12,17 +12,19 @@ Extension pour **Chrome, Edge, Opera, Brave et Vivaldi** qui récupère tout ton
 - **Import complet** de l'historique de chaque plateforme, en un clic, même avec des milliers d'épisodes.
 - **Suivi automatique** : chaque épisode regardé plus d'une minute est ajouté (date, heure, temps regardé), et une synchro discrète toutes les 6 h récupère aussi ce que tu regardes sur la TV ou le téléphone.
 - **Fichier Excel** toujours à jour, regroupé par série, avec statut, progression, genres, ta note et ton avis.
-- **Ma liste** : affiches trouvées automatiquement, statuts *En cours / Vu / Ajouté à la liste*, épisode où tu en es, filtres par plateforme, genre et époque.
+- **Ma liste** : affiches trouvées automatiquement, sous-onglets *Animés / Séries / Films*, statuts *En cours / Vu / Ajouté à la liste*, épisode où tu en es, filtres par plateforme, genre et époque, tri par ta note.
 - **Ce soir** : tu dis combien de temps tu as et ce dont tu as envie, il te propose 3 choses à lancer en un clic.
 - **Calendrier des sorties** : date et heure de chaque épisode à venir de tes séries en cours, en VO, VOSTFR et VF (dates estimées « ≈ » quand elles ne sont pas encore annoncées), avec le choix « Je regarde en VOSTFR / VF ».
+- **Saisons** : tous les animés de la saison (hiver, printemps, été, automne), avec date de sortie et plateformes, et un bouton **Je veux voir** qui les ajoute à ta liste et à ton calendrier.
 - **Rechercher un animé** : n'importe quel animé, ses saisons, films et OAV, et où le regarder légalement (Crunchyroll, ADN, Netflix…), ou les animés du moment.
-- **Suites à voir** : la nouvelle saison, le film ou l'OAV des animés que tu as finis, avec où les regarder.
+- **Suites à voir** : la nouvelle saison, le film ou l'OAV des animés que tu as finis, avec où les regarder ; et quand l'animé n'a plus de suite, **le manga** pour connaître la fin (liens de lecture officiels).
 - **À suivre** : reprendre un épisode en cours ou lancer le suivant en un clic.
 - **Alertes de nouveaux épisodes** pour tes simulcasts Crunchyroll, et dès qu'un épisode sort en VF.
-- **Tournoi** : tes titres de la semaine, du mois ou de l'année s'affrontent en duels jusqu'au champion, avec une image à partager.
+- **Tournoi** : tes titres de la semaine, du mois ou de l'année s'affrontent en duels jusqu'au champion, avec ta **tier list** (S, A, B, C, D) et une image à partager ; le **méga-tournoi** fait s'affronter les champions de chaque mois.
 - **Bilan** : heures regardées, calendrier de tes soirées, top 10, genres préférés, records.
 - **Notes, favoris et avis** sur chaque titre, et un statut *Abandonné* pour ce que tu as laissé tomber.
 - **Sauvegarde / restauration** pour changer de PC sans rien perdre.
+- **Affichage vertical ou horizontal** : affiches en hauteur et jours en colonnes, ou images larges et jours en lignes, pour toute l'app.
 - **Mise à jour signalée** : un bandeau prévient quand une nouvelle version est disponible ici.
 
 ## En images
@@ -87,7 +89,7 @@ Le [guide complet](docs/GUIDE.md) explique chaque fonction en détail.
 
 - Tout reste **sur ton ordinateur**, dans ton navigateur. Aucun serveur, aucun compte, aucune statistique envoyée.
 - L'extension lit l'historique **de ton propre compte**, avec ta propre session, comme si tu le consultais toi-même. Elle ne contourne aucune protection et ne touche pas aux vidéos.
-- Pour les affiches, les genres et les dates de sortie, seul le **titre** d'une série est envoyé à des bases publiques (AniList, TVmaze, IMDb, iTunes, Allociné et, si tu ajoutes ta clé, TMDB).
+- Pour les affiches, les genres et les dates de sortie, seul le **titre** d'une série (ou la saison consultée) est envoyé à des bases publiques (AniList, TVmaze, IMDb, iTunes, Allociné et, si tu ajoutes ta clé, TMDB).
 - Une fois par jour, l'extension regarde sur GitHub si une nouvelle version existe (aucune donnée envoyée).
 
 ## Limites
