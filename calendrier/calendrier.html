@@ -38,6 +38,19 @@
     <p class="cr-hint" id="crHint" hidden>Les dates <span class="k vostfr">VOSTFR</span> et <span class="k vf">VF</span> de Crunchyroll arrivent à la prochaine synchro. <button class="btn secondary" id="syncNow">Synchroniser maintenant</button></p>
     <section class="week" id="week" aria-live="polite"></section>
     <p class="legend"><span class="k vo">VO</span> diffusion au Japon (ou d'origine) · <span class="k vostfr">VOSTFR</span> · <span class="k vf">VF</span> · ≈ date estimée d'après les épisodes précédents · ✓ déjà vu</p>
+    <p class="link-done" id="linkDone" hidden>✓ Série reliée : ses dates arrivent dans une minute environ.</p>
+    <section class="missing" id="missing" hidden>
+      <h2 class="row-title">Séries suivies sans dates <span class="n" id="missingCount"></span></h2>
+      <p class="count">Ces séries ne sont pas reconnues automatiquement (titre différent, plateforme sans calendrier…). Clique pour choisir la bonne fiche : leurs sorties apparaîtront dans le calendrier.</p>
+      <div class="miss-list" id="missingList"></div>
+    </section>
+    <div class="link-modal" id="linkModal" hidden role="dialog" aria-modal="true" aria-labelledby="linkTitle">
+      <div class="link-box">
+        <div class="link-head"><h2 id="linkTitle">Quelle série ?</h2><button class="icon-btn" id="linkClose" aria-label="Fermer"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
+        <form id="linkForm" class="link-form"><input id="linkQ" type="search" autocomplete="off" aria-label="Titre à chercher"><button class="btn primary">Chercher</button></form>
+        <div class="link-results" id="linkResults"></div>
+      </div>
+    </div>
     <div class="empty" id="empty" hidden>
       <img src="../icons/logo.svg" alt="">
       <h2>Rien de prévu pour l'instant</h2>

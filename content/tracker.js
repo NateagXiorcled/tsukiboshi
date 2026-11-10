@@ -5,6 +5,25 @@
   if (!VH || !VH.platform || window.__VH_TRACK) return;
   window.__VH_TRACK = true;
 
+  // Crunchyroll : épisodes marqués « vus » sur le site (repérés par cr-hook.js) → ajoutés à l'historique
+  if (VH.platform === 'crunchyroll' && window === top) {
+    window.addEventListener('message', (e) => {
+      if (e.source !== window || !e.data || e.data.__tsuki !== 'cr-marked' || !Array.isArray(e.data.items)) return;
+      const now = Date.now();
+      const entries = e.data.items.filter((x) => x && x.series && x.id).map((x, i) => {
+        const length = x.duration ? x.duration / 1000 : null;
+        const label = (x.season ? `S${x.season} ` : '') + (x.ep != null && x.ep !== '' ? `E${x.ep} - ` : '') + String(x.title || '').trim();
+        return {
+          platform: 'crunchyroll', title: String(x.series).trim(), episode: label, date: now - i, hasTime: true,
+          seconds: length, length, progress: 1, url: `https://www.crunchyroll.com/fr/watch/${x.id}/${x.slug || ''}`,
+          seriesId: x.seriesId || '', seasonId: x.seasonId || '', seasonNum: typeof x.season === 'number' ? x.season : null, epNum: typeof x.ep === 'number' ? x.ep : null,
+          source: 'marked',
+        };
+      });
+      if (entries.length) VH.send({ type: 'addEntries', entries });
+    });
+  }
+
   const INTERVAL = 5; // secondes
   const lastTime = new WeakMap();
 

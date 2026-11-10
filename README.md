@@ -12,13 +12,14 @@ Extension pour **Chrome, Edge, Opera, Brave et Vivaldi** qui récupère tout ton
 - **Import complet** de l'historique de chaque plateforme, en un clic, même avec des milliers d'épisodes.
 - **Suivi automatique** : chaque épisode regardé plus d'une minute est ajouté (date, heure, temps regardé), et une synchro discrète toutes les 6 h récupère aussi ce que tu regardes sur la TV ou le téléphone.
 - **Fichier Excel** toujours à jour, regroupé par série, avec statut, progression, genres, ta note et ton avis.
-- **Ma liste** : affiches trouvées automatiquement, sous-onglets *Animés / Séries / Films*, statuts *En cours / Vu / Ajouté à la liste*, épisode où tu en es, filtres par plateforme, genre et époque, tri par ta note.
+- **Ma liste** : affiches trouvées automatiquement, sous-onglets *Animés / Séries / Films*, statuts *En cours / Vu / Ajouté à la liste*, épisode où tu en es, filtres par plateforme, genre et époque, tri par ta note, **sélection multiple** pour changer le statut de plusieurs titres d'un coup.
 - **Ce soir** : tu dis combien de temps tu as et ce dont tu as envie, il te propose 3 choses à lancer en un clic.
-- **Calendrier des sorties** : date et heure de chaque épisode à venir de tes séries en cours, en VO, VOSTFR et VF (dates estimées « ≈ » quand elles ne sont pas encore annoncées), avec le choix « Je regarde en VOSTFR / VF ».
+- **Calendrier des sorties** : date et heure de chaque épisode à venir de tes séries en cours, en VO, VOSTFR et VF (dates estimées « ≈ » quand elles ne sont pas encore annoncées), avec le choix « Je regarde en VOSTFR / VF » ; une série pas reconnue se relie en un clic.
 - **Saisons** : tous les animés de la saison (hiver, printemps, été, automne), avec date de sortie et plateformes, et un bouton **Je veux voir** qui les ajoute à ta liste et à ton calendrier.
 - **Rechercher un animé** : n'importe quel animé, ses saisons, films et OAV, et où le regarder légalement (Crunchyroll, ADN, Netflix…), ou les animés du moment.
 - **Suites à voir** : la nouvelle saison, le film ou l'OAV des animés que tu as finis, avec où les regarder ; et quand l'animé n'a plus de suite, **le manga** pour connaître la fin (liens de lecture officiels).
-- **À suivre** : reprendre un épisode en cours ou lancer le suivant en un clic.
+- **À suivre** : reprendre un épisode en cours ou lancer le suivant en un clic (seulement ce qui est à lancer, pas une liste sans fin).
+- **Marquer comme vu** : dans la fiche d'un titre, ou avec le bouton « Marquer comme vu » de Crunchyroll.
 - **Alertes de nouveaux épisodes** pour tes simulcasts Crunchyroll, et dès qu'un épisode sort en VF.
 - **Tournoi** : tes titres de la semaine, du mois ou de l'année s'affrontent en duels jusqu'au champion, avec ta **tier list** (S, A, B, C, D) et une image à partager ; le **méga-tournoi** fait s'affronter les champions de chaque mois.
 - **Bilan** : heures regardées, calendrier de tes soirées, top 10, genres préférés, records.

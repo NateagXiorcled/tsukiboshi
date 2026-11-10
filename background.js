@@ -112,7 +112,7 @@ function sanitize(e) {
     seasonId: String(e.seasonId || '').slice(0, 40),
     seasonNum: typeof e.seasonNum === 'number' ? e.seasonNum : null,
     epNum: typeof e.epNum === 'number' ? e.epNum : null,
-    source: e.source === 'live' ? 'live' : 'import',
+    source: e.source === 'live' || e.source === 'marked' ? e.source : 'import',
   };
 }
 
@@ -198,8 +198,16 @@ function addEntries(list) {
     const entries = await getEntries();
     const index = buildIndex(entries);
     let added = 0;
+    // épisodes marqués « vus » (sur le site ou dans l'app) : ignorés s'ils sont déjà dans l'historique
+    let known = null;
+    const epKey = (e) => `${seriesKey(e)}|${norm(String(e.episode || '').replace(/\s+-\s+.*$/, ''))}`;
     for (const raw of list) {
       if (!PLATFORMS[raw.platform]) continue;
+      if (raw.source === 'marked') {
+        if (!known) known = new Set(Object.values(entries).filter((e) => e.episode).map(epKey));
+        if (!raw.episode || known.has(epKey(raw))) continue;
+        known.add(epKey(raw));
+      }
       if (upsert(entries, index, raw)[1]) added++;
     }
     await chrome.storage.local.set({ entries });
@@ -344,7 +352,7 @@ export function buildSheets(entries, shows = {}, meta = {}, genres = {}) {
   const row = (e) => [
     dateCell(e), timeCell(e), PLATFORMS[e.platform], e.profile, e.title, e.episode,
     minutes(e.seconds), minutes(e.length), pctCell(e),
-    e.source === 'live' ? 'Suivi auto' : 'Historique', e.url,
+    e.source === 'live' ? 'Suivi auto' : e.source === 'marked' ? 'Marqué vu' : 'Historique', e.url,
   ];
   sheets.push({ name: 'Tout', columns, rows: list.map(row) });
 
@@ -827,7 +835,7 @@ function latestCrSeason(meta) {
   const g = groups[groups.length - 1];
   if (!g) return null;
   const s = (meta.seasons || []).find((x) => x.id === g.ids[0]) || {};
-  return { id: s.id, number: g.number, audio: s.audio || '', vers: s.vers || [] };
+  return { id: s.id, number: g.number, audio: s.audio || '', vers: s.vers || [], count: s.count || null };
 }
 // dernière saison (en cours ou annoncée) dans la chaîne des suites AniList
 function currentAniId(id, media) {
@@ -860,6 +868,7 @@ async function calendarTick() {
     const aniOf = new Map();
     for (const g of groups) {
       if (g.want) aniOf.set(g.key, g.aniId); // titre choisi exprès : cette fiche-là, pas sa suite
+      else if (ids[g.key] && ids[g.key].manual) aniOf.set(g.key, ids[g.key].id); // lié à la main depuis le calendrier
       else if (g.anime && ids[g.key] && ids[g.key].id) aniOf.set(g.key, currentAniId(ids[g.key].id, media));
     }
     let airing = await getLocal('aniAiring', {});
@@ -879,6 +888,7 @@ async function calendarTick() {
     if (n) await chrome.storage.local.set({ tvShows });
     // 3. assemblage
     const items = [];
+    const missing = [];
     for (const g of groups) {
       let vo = [];
       if (g.anime && aniOf.has(g.key)) vo = airing[aniOf.get(g.key)] || [];
@@ -889,11 +899,15 @@ async function calendarTick() {
         g.season = last;
       }
       const cr = crEps[g.key] || null;
-      if (!vo.length && !cr) continue;
-      items.push(...buildCalendar(g, { vo, cr, now }));
+      if (!vo.length && !cr) { missing.push({ key: g.key, title: g.title, platform: g.platform }); continue; }
+      const ls = g.meta && g.platform === 'crunchyroll' ? latestCrSeason(g.meta) : null;
+      const its = buildCalendar({ ...g, count: (ls && ls.count) || null }, { vo, cr, now });
+      // rien dans les 2 mois passés ni à venir : on la signale comme « sans dates »
+      if (!its.length) missing.push({ key: g.key, title: g.title, platform: g.platform });
+      items.push(...its);
     }
     const prev = await getLocal('calendar', {});
-    await chrome.storage.local.set({ calendar: { items, at: now } });
+    await chrome.storage.local.set({ calendar: { items, missing: missing.filter((m) => !NO_ART.test(m.title)).slice(0, 60), at: now } });
     // 4. alerte : un épisode est sorti en VF (réelle, pas estimée) depuis la dernière vérification
     if (settings.lang !== 'vostfr' && settings.notify) {
       const since = prev.at || now;
@@ -1293,6 +1307,19 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
 
       case 'restore':
         return await restoreBackup(msg.payload);
+
+      case 'linkAnime': {
+        // série du calendrier sans dates : l'utilisateur choisit la bonne fiche AniList
+        if (!msg.key || !msg.id) return { ok: false };
+        await withLock(async () => {
+          const [ids, airing] = await Promise.all([getLocal('aniIds', {}), getLocal('aniAiring', {})]);
+          ids[msg.key] = { id: +msg.id, fetched: Date.now(), manual: true };
+          airing._at = 0;
+          await chrome.storage.local.set({ aniIds: ids, aniAiring: airing });
+        });
+        calendarTick().catch(() => {});
+        return { ok: true };
+      }
 
       case 'crEpisodesTodo': {
         const [groups, crEps] = await Promise.all([followedGroups(), getLocal('crEpisodes', {})]);

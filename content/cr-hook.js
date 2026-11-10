@@ -109,6 +109,43 @@
     return { status: 503 };
   }
 
+  // « Marquer comme vu » sur le site (épisode ou saison entière) : on retrouve les épisodes concernés
+  // et on les transmet à l'extension, comme s'ils avaient été regardés
+  const WATCHED = /mark_as_watched|\/watched\b/i;
+  const slimEp = (o) => {
+    const m = o.episode_metadata || o;
+    return { id: o.id, title: o.title || '', slug: o.slug_title || '', series: m.series_title || '', seriesId: m.series_id || '', seasonId: m.season_id || '',
+      season: m.season_number ?? null, ep: m.episode_number ?? m.episode ?? null, duration: m.duration_ms || null };
+  };
+  async function markedFrom(url, method, body) {
+    try {
+      if (!/^(post|put|patch)$/i.test(method || '') || !WATCHED.test(url)) return;
+      const ids = [];
+      const m = String(url).match(/mark_as_watched\/([A-Za-z0-9]+)/i);
+      if (m) ids.push(m[1]);
+      try {
+        const b = typeof body === 'string' ? JSON.parse(body) : null;
+        if (b) {
+          for (const k of ['content_id', 'episode_id', 'id']) if (typeof b[k] === 'string') ids.push(b[k]);
+          for (const k of ['content_ids', 'episode_ids', 'ids']) if (Array.isArray(b[k])) ids.push(...b[k].filter((x) => typeof x === 'string'));
+        }
+      } catch {}
+      const uniq = [...new Set(ids)].filter((x) => /^[A-Za-z0-9]{5,20}$/.test(x)).slice(0, 40);
+      const eps = [];
+      for (const id of uniq) {
+        const r = await apiGet(`/content/v2/cms/objects/${id}`);
+        const o = r.data && r.data.data && r.data.data[0];
+        if (!o) continue;
+        if (o.type === 'episode') eps.push(slimEp(o));
+        else if (o.type === 'season') {
+          const sr = await apiGet(`/content/v2/cms/seasons/${id}/episodes`);
+          eps.push(...((sr.data && sr.data.data) || []).map(slimEp));
+        }
+      }
+      if (eps.length) window.postMessage({ __tsuki: 'cr-marked', items: eps.slice(0, 200) }, location.origin);
+    } catch {}
+  }
+
   window.fetch = async function (input, init) {
     try {
       const u0 = typeof input === 'string' ? input : (input && input.url) || String(input);
@@ -123,6 +160,10 @@
       const auth0 = authOf(init && init.headers) || (input instanceof Request ? input.headers.get('authorization') || '' : '');
       if (API.test(url)) gotAuth(auth0);
       if (/\/auth\/v1\/token/.test(url) && res.ok) res.clone().json().then((d) => tokenFrom(url, d)).catch(() => {});
+      if (res.ok && WATCHED.test(url)) {
+        const method = (init && init.method) || (input instanceof Request ? input.method : 'GET');
+        markedFrom(url, method, init && typeof init.body === 'string' ? init.body : null);
+      }
       if (MATCH.test(url) && res.ok) {
         const auth = auth0;
         res.clone().json().then((data) => emit({ url: new URL(url, location.href).href, auth, data })).catch(() => {});
@@ -151,6 +192,10 @@
       this.addEventListener('load', () => {
         try { tokenFrom(this.__tsukiUrl, this.responseType === 'json' ? this.response : JSON.parse(this.responseText)); } catch {}
       });
+    }
+    if (this.__tsukiUrl && WATCHED.test(this.__tsukiUrl)) {
+      const u = this.__tsukiUrl, mth = this.__tsukiMethod, b = typeof body === 'string' ? body : null;
+      this.addEventListener('load', () => { if (this.status >= 200 && this.status < 300) markedFrom(u, mth, b); });
     }
     if (this.__tsukiUrl && MATCH.test(this.__tsukiUrl)) {
       this.addEventListener('load', () => {

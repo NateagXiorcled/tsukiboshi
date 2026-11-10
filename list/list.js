@@ -26,6 +26,7 @@ const fmtN = (n) => n.toLocaleString('fr-FR');
 
 let data = { entries: {}, shows: {}, wishlist: {}, meta: {}, art: {}, newEps: {}, genres: {}, suites: [] };
 let shows = [];
+let sel = null; // sélection multiple : Set des titres choisis quand le mode est actif
 const view = { status: 'all', platform: 'all', kind: 'all', q: '', sort: 'recent', genre: '', decade: '' };
 // type de titre : animé, série ou film (sous-onglets)
 const kindOf = (s) => (s.isMovie ? 'movie' : isAnime(s) ? 'anime' : 'series');
@@ -81,6 +82,19 @@ function buildShows() {
   });
 }
 
+// plusieurs titres d'un coup (sélection multiple) : une seule écriture
+async function setStatusMany(keys, status) {
+  const next = { ...data.shows };
+  for (const key of keys) {
+    const s = shows.find((x) => x.key === key);
+    const cur = { ...(next[key] || {}) };
+    if (!status || (s && status === s.auto)) delete cur.status;
+    else cur.status = status;
+    if (Object.keys(cur).some((k) => k !== 'updated')) next[key] = { ...cur, updated: Date.now() };
+    else delete next[key];
+  }
+  await chrome.storage.local.set({ shows: next });
+}
 async function setStatus(key, status) {
   const s = shows.find((x) => x.key === key);
   const next = { ...data.shows };
@@ -254,7 +268,7 @@ function card(s) {
   }
   const count = !s.items.length || s.isMovie ? '' : s.prog ? ` · ${s.prog.watched}/${s.prog.total} ép.` : ` · ${s.episodes} ép.`;
   const nextTxt = s.prog ? (s.prog.next ? `Prochain : ${epLabel(s.prog.next)}` : s.prog.upToDate ? 'À jour' : s.prog.complete ? 'Terminé' : '') : '';
-  return `<article class="card" tabindex="0" data-key="${esc(s.key)}">
+  return `<article class="card${sel && sel.has(s.key) ? ' picked' : ''}" tabindex="0" data-key="${esc(s.key)}"${sel ? ` aria-pressed="${sel.has(s.key)}"` : ''}>
     <div class="thumb${isHorizontal() ? ' wide' : ''}">${isHorizontal() ? wideVisual(s) : visual(s)}<span class="badge" style="--s:${st.color}">${st.label}</span>${s.fav ? `<span class="fav-mark" title="Favori">${HEART}</span>` : ''}${bar}</div>
     <div class="meta">
       <div class="c-platform"><span class="dot" style="background:${COLORS[s.platform]}"></span>${PLATFORMS[s.platform]}${count}</div>
@@ -315,16 +329,29 @@ function resumeLink(s, partial) {
     disney: `https://www.disneyplus.com/search?q=${q}`,
   }[s.platform] || '';
 }
+// « À suivre » ne garde que ce qu'on peut lancer : nouvel épisode, épisode à reprendre, ou prochain épisode connu,
+// regardé récemment (sinon ça devient une liste sans fin de séries abandonnées)
+const UP_DAYS = 45;
+function upKind(s) {
+  if (data.newEps[s.key]) return 'new';
+  const li = s.lastItem;
+  const frac = li && li.length && li.seconds ? li.seconds / li.length : li && li.progress != null ? li.progress : null;
+  if (frac != null && frac > 0.03 && frac < 0.9) return 'resume';
+  if (s.prog && s.prog.next) return 'next';
+  return null;
+}
 function upNextList() {
   if (!(view.status === 'all' || view.status === 'progress') || view.q || view.genre || view.decade) return [];
+  const now = Date.now();
   return shows
     .filter((s) => s.status === 'progress' && s.items.length && !s.isMovie && s.last)
     .filter(inScope)
-    .filter((s) => !(s.prog && !s.prog.next && (s.prog.complete || s.prog.upToDate)))
+    .filter((s) => upKind(s))
+    .filter((s) => data.newEps[s.key] || now - s.last < UP_DAYS * 864e5)
     .filter((s) => data.newEps[s.key] || !((data.shows[s.key] || {}).hideNext >= s.last)) // masqué jusqu'au prochain visionnage ou au prochain épisode
     // nouveaux épisodes en premier, puis le plus récemment regardé
     .sort((a, b) => (data.newEps[b.key] ? data.newEps[b.key].at : 0) - (data.newEps[a.key] ? data.newEps[a.key].at : 0) || b.last - a.last)
-    .slice(0, 16);
+    .slice(0, 12);
 }
 function upCard(s) {
   const li = s.lastItem;
@@ -643,7 +670,7 @@ function openShow(key, refresh) {
     <li><span class="s-name">${esc(g.title || (g.number != null ? 'Saison ' + g.number : 'Saison'))}</span>
       <span class="s-count">${g.seen} / ${g.count}</span>
       <span class="s-bar"><i style="width:${Math.round((g.seen / g.count) * 100)}%;background:${g.seen >= g.count ? 'var(--s-done)' : 'var(--s-progress)'}"></i></span></li>`).join('')}</ul>` : '';
-  $('dActions').innerHTML = actions.join('');
+  $('dActions').innerHTML = actions.join('') + (s.isMovie || !s.items.length ? '' : markBox(s));
 
   $('dEpTitle').hidden = !s.items.length;
   $('dEpisodes').innerHTML = s.items.map((e) => {
@@ -652,7 +679,7 @@ function openShow(key, refresh) {
     const extra = [
       p != null ? `<span class="mini"><i style="width:${Math.round(p * 100)}%"></i></span>${Math.round(p * 100)} %` : '',
       e.seconds ? `${Math.round(e.seconds / 60)} min regardées` : '',
-      e.source === 'live' ? 'suivi en direct' : '',
+      e.source === 'live' ? 'suivi en direct' : e.source === 'marked' ? 'marqué vu' : '',
     ].filter(Boolean).join(' · ');
     return `<li><span class="ep-name">${safeUrl(e.url) ? `<a href="${esc(e.url)}" target="_blank" rel="noopener">${name}</a>` : name}</span>
       <span class="ep-date">${dateTxt(e)}</span>${extra ? `<span class="ep-extra">${extra}</span>` : ''}</li>`;
@@ -812,14 +839,98 @@ $('kindTabs').onclick = (e) => { const b = e.target.closest('[data-kind]'); if (
 $('q').oninput = (e) => { view.q = e.target.value; render(); };
 $('grid').onclick = (e) => {
   const c = e.target.closest('.card');
-  if (c) openShow(c.dataset.key);
+  if (!c) return;
+  if (sel) togglePick(c); else openShow(c.dataset.key);
 };
 $('grid').onkeydown = (e) => {
   const c = e.target.closest('.card');
-  if (c && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); openShow(c.dataset.key); }
+  if (c && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); if (sel) togglePick(c); else openShow(c.dataset.key); }
 };
+
+// ---------- marquer des épisodes comme vus depuis l'app ----------
+function markBox(s) {
+  const li = s.lastItem || {};
+  const next = s.prog && s.prog.next;
+  const season = (next && next.season) ?? li.seasonNum ?? 1;
+  const from = (next && next.ep) || (typeof li.epNum === 'number' ? li.epNum + 1 : 1);
+  return `<div class="mark-box">
+    <b>Marquer comme vu</b>
+    ${next ? `<button class="btn secondary" data-mark-next>✓ ${esc(epLabel(next))} vu</button>` : ''}
+    <form class="mark-form" data-mark-form>
+      <label>Saison <input name="s" type="number" min="0" max="99" value="${season}"></label>
+      <label>épisodes <input name="a" type="number" min="1" max="2000" value="${from}"></label>
+      <label>à <input name="b" type="number" min="1" max="2000" value="${from}"></label>
+      <button class="btn secondary">Marquer</button>
+    </form>
+    <small class="mark-done" hidden></small>
+  </div>`;
+}
+async function markEpisodes(s, season, a, b) {
+  if (!(a >= 1) || !(b >= a)) return 0;
+  b = Math.min(b, a + 199);
+  const li = s.lastItem || {};
+  const now = Date.now();
+  const entries = [];
+  for (let n = a; n <= b; n++) entries.push({ platform: s.platform, title: s.title, episode: `S${season} E${n}`, date: now - (b - n), hasTime: true, progress: 1,
+    seasonNum: season, epNum: n, seriesId: li.seriesId || '', source: 'marked' });
+  const r = await chrome.runtime.sendMessage({ type: 'addEntries', entries });
+  return (r && r.added) || 0;
+}
+$('drawer').addEventListener('submit', async (e) => {
+  const f = e.target.closest('[data-mark-form]');
+  if (!f) return;
+  e.preventDefault();
+  const s = shows.find((x) => x.key === openKey);
+  if (!s) return;
+  const n = await markEpisodes(s, +f.s.value, +f.a.value, +f.b.value);
+  const done = f.parentElement.querySelector('.mark-done');
+  done.hidden = false;
+  done.textContent = n ? `✓ ${n} épisode${n > 1 ? 's' : ''} ajouté${n > 1 ? 's' : ''}` : 'Déjà dans ton historique';
+});
+
+// ---------- sélection multiple : changer le statut de plusieurs titres d'un coup ----------
+function selUpdate() {
+  document.body.classList.toggle('selecting', !!sel);
+  $('selBar').hidden = !sel;
+  $('selBtn').classList.toggle('on', !!sel);
+  $('selBtn').textContent = sel ? 'Terminer' : 'Sélectionner';
+  if (!sel) return;
+  const n = sel.size;
+  $('selCount').textContent = n ? `${n} titre${n > 1 ? 's' : ''} sélectionné${n > 1 ? 's' : ''}` : 'Touche les titres à modifier';
+  for (const b of $('selBar').querySelectorAll('[data-bulk]')) b.disabled = !n;
+}
+function togglePick(c) {
+  const k = c.dataset.key;
+  if (sel.has(k)) sel.delete(k); else sel.add(k);
+  c.classList.toggle('picked', sel.has(k));
+  c.setAttribute('aria-pressed', String(sel.has(k)));
+  selUpdate();
+}
+$('selBtn').onclick = () => { sel = sel ? null : new Set(); render(); selUpdate(); };
+$('selAll').onclick = () => {
+  const vis = filtered().map((s) => s.key);
+  const all = vis.every((k) => sel.has(k));
+  for (const k of vis) all ? sel.delete(k) : sel.add(k);
+  render(); selUpdate();
+};
+$('selCancel').onclick = () => { sel = null; render(); selUpdate(); };
+$('selBar').addEventListener('click', async (e) => {
+  const b = e.target.closest('[data-bulk]');
+  if (!b || !sel || !sel.size) return;
+  const keys = [...sel];
+  await setStatusMany(keys, b.dataset.bulk === 'auto' ? null : b.dataset.bulk);
+  $('selCount').textContent = `✓ ${keys.length} titre${keys.length > 1 ? 's' : ''} : ${b.textContent.trim()}`;
+  sel = new Set();
+  for (const x of $('selBar').querySelectorAll('[data-bulk]')) x.disabled = true;
+});
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && sel && !document.querySelector('.drawer.open, .modal-wrap:not([hidden])')) { sel = null; render(); selUpdate(); } });
 $('drawer').onclick = async (e) => {
   if (e.target.closest('[data-art]')) return openArt();
+  if (e.target.closest('[data-mark-next]')) {
+    const s = shows.find((x) => x.key === openKey);
+    if (s && s.prog && s.prog.next) await markEpisodes(s, s.prog.next.season ?? 1, s.prog.next.ep, s.prog.next.ep);
+    return;
+  }
   const gch = e.target.closest('[data-genre]');
   if (gch) { view.genre = gch.dataset.genre; view.status = 'all'; closeShow(); render(); return; }
   const rate = e.target.closest('[data-rate]');

@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Tsukiboshi 月星 — journal de visionnage anime",
   "short_name": "Tsukiboshi",
-  "version": "5.12.0",
+  "version": "5.13.0",
   "description": "Garde la trace de tout ce que tu regardes (Crunchyroll, ADN, Netflix, Disney+, Prime Video), regroupé par série dans un fichier Excel tenu à jour en silence.",
   "icons": {
     "16": "icons/icon16.png",

@@ -1,4 +1,4 @@
-# Guide complet — tsukiboshi 月星 (v5.12)
+# Guide complet — tsukiboshi 月星 (v5.13)
 
 Plateformes : Netflix, Crunchyroll, ADN, Disney+, Prime Video.
 Fonctionne avec n'importe quel compte : l'extension utilise le compte connecté dans Chrome.
@@ -29,6 +29,7 @@ Popup → **Ma liste** : une page avec toutes tes séries et tous tes films en v
 - Sous-onglets **Tout / Animés / Séries / Films**, filtres par statut (**En cours**, **Vu**, **Ajouté à la liste**) et par plateforme, recherche (touche `/`), tri (dont **Ma note** : les 5 ★ d'abord).
 - Bouton à droite des onglets (ou réglage **Affichage** du popup) : **vertical** (affiches en hauteur, jours du calendrier en colonnes) ou **horizontal** (images larges, un jour par ligne). Le choix vaut pour toute l'app.
 - Chaque vignette montre où tu en es (dernier épisode vu) et quand.
+- **Sélectionner** (à côté du tri) : touche plusieurs vignettes, puis choisis **En cours**, **Vu**, **Ajouté à la liste**, **Abandonné** ou **Automatique** pour toutes d'un coup. Échap pour quitter.
 - Clic sur une vignette : statut modifiable, statistiques, bouton pour rouvrir le dernier épisode, liste de tous les épisodes vus.
 - Affiches automatiques (comme Plex), recherchées selon le type du titre (film, série, animé, spectacle) :
   TMDB (facultatif, clé gratuite à coller dans les réglages), Allociné, IMDb, AniList (animés), iTunes / Apple TV (films), TVmaze (séries).
@@ -60,6 +61,9 @@ Onglet **Calendrier** : la semaine jour par jour, avec l'heure de sortie de chaq
 - ✓ : épisode déjà vu. Flèches pour changer de semaine.
 - Réglage **Je regarde en** (popup ou calendrier) : VOSTFR, VF ou les deux. En VF, l'alerte arrive quand l'épisode sort en VF.
 - Netflix / Prime : la VF sort en général le même jour que la VO, sans date annoncée à l'avance.
+- Une seule fiche par épisode et par jour : la VO et la VOSTFR du même épisode sont regroupées.
+- Série Crunchyroll pas reconnue sur AniList : les prochains épisodes sont estimés d'après le rythme des épisodes déjà sortis (en général un par semaine).
+- **Séries suivies sans dates** (sous la semaine) : les séries que Tsukiboshi n'a pas su reconnaître (titre français, ADN…). Clique dessus et choisis la bonne fiche : ses sorties arrivent dans le calendrier.
 
 ### Saisons
 Onglet **Saisons** : tous les animés d'une saison (hiver, printemps, été, automne), comme un calendrier saisonnier.
@@ -102,6 +106,7 @@ En plus de En cours / Vu / Ajouté à la liste : une série abandonnée n'appara
 - Repris dans l'Excel (feuille « Séries » : Genres, Sortie) et dans le Bilan (« Tes genres »).
 
 ### À suivre
+Seulement ce que tu peux lancer tout de suite, regardé ces 45 derniers jours : **nouvel épisode**, épisode **à reprendre**, ou **prochain épisode** connu (12 au plus).
 En haut de Ma liste : les séries en cours, la plus récente d'abord.
 - **Reprendre** : l'épisode a été arrêté en cours de route, le bouton ▶ le rouvre directement.
 - **Prochain** : l'épisode suivant (Crunchyroll), le bouton ▶ ouvre la page de la série sur la plateforme.
@@ -132,6 +137,12 @@ Onglet **Bilan** en haut de Ma liste : par année ou depuis le début.
 - **Résumé** : totaux par plateforme.
 
 Les doublons (même épisode vu en direct puis retrouvé dans l'historique) sont fusionnés automatiquement.
+
+## Nouveautés 5.13
+- Calendrier : séries sans dates reliées en un clic, rythme Crunchyroll pour les séries non reconnues, une fiche par épisode.
+- **À suivre** : seulement les épisodes à lancer, plus de liste sans fin.
+- **Sélection multiple** dans Ma liste pour changer le statut de plusieurs titres.
+- **Épisodes marqués vus** : bouton « Marquer comme vu » de Crunchyroll pris en compte, et dans la fiche d'un titre : « ✓ S1 E7 vu » ou « Saison x, épisodes a à b ».
 
 ## Nouveautés 5.12
 - Onglet **Saisons** (calendrier saisonnier) et bouton **Je veux voir** relié au Calendrier.

@@ -35,6 +35,7 @@
       <div class="chips small" id="platformChips"></div>
       <select id="genre" aria-label="Genre" hidden></select>
       <select id="decade" aria-label="Époque" hidden></select>
+      <button class="btn secondary sel-btn" id="selBtn" type="button">Sélectionner</button>
       <select id="sort" aria-label="Trier">
         <option value="recent">Vu récemment</option>
         <option value="alpha">A → Z</option>
@@ -64,6 +65,18 @@
   </main>
 
   <!-- Fiche d'une série -->
+  <div class="sel-bar" id="selBar" hidden role="toolbar" aria-label="Changer le statut des titres sélectionnés">
+    <span class="sel-count" id="selCount"></span>
+    <div class="sel-actions">
+      <button class="btn secondary" data-bulk="progress"><i style="background:var(--s-progress)"></i>En cours</button>
+      <button class="btn secondary" data-bulk="done"><i style="background:var(--s-done)"></i>Vu</button>
+      <button class="btn secondary" data-bulk="list"><i style="background:var(--s-list)"></i>Ajouté à la liste</button>
+      <button class="btn secondary" data-bulk="dropped"><i style="background:var(--s-dropped)"></i>Abandonné</button>
+      <button class="btn secondary" data-bulk="auto" title="Revenir au statut calculé d'après les épisodes vus">Automatique</button>
+    </div>
+    <button class="btn secondary" id="selAll">Tout sélectionner</button>
+    <button class="icon-btn" id="selCancel" aria-label="Quitter la sélection"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+  </div>
   <div class="overlay" id="overlay" hidden></div>
   <aside class="drawer" id="drawer" aria-hidden="true">
     <button class="icon-btn close" id="drawerClose" aria-label="Fermer">

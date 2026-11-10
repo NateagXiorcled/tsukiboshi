@@ -41,3 +41,29 @@ a.rel-item:hover .t { text-decoration: underline; }
 [data-layout="horizontal"] .day .rel-item { flex: 0 1 230px; border-top: 0; padding: 4px 0; }
 [data-layout="horizontal"] .day .none { margin: 6px 0 0; }
 @media (max-width: 720px) { [data-layout="horizontal"] .day h3 { flex-basis: 100%; flex-direction: row; } [data-layout="horizontal"] .day .rel-item { flex-basis: 100%; } }
+
+.rel-item .m.kinds { gap: 4px 6px; }
+.rel-item .m.kinds .k + span { margin-right: 4px; }
+.rel-item .ep { font-weight: 600; color: var(--text); opacity: .8; }
+.missing { margin-top: 30px; }
+.missing .n { font-size: 14px; color: var(--muted); font-weight: 500; }
+.miss-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 10px; margin-top: 10px; }
+.miss { display: grid; grid-template-columns: 34px 1fr; gap: 10px; align-items: center; text-align: left; padding: 8px 10px; border-radius: 10px; border: 1px dashed var(--line); background: var(--surface); color: var(--text); cursor: pointer; }
+.miss:hover { border-color: var(--accent); }
+.miss .p { width: 34px; height: 50px; border-radius: 4px; overflow: hidden; background: var(--surface-2); }
+.miss .p img, .miss .p .ph { width: 100%; height: 100%; object-fit: cover; display: grid; place-items: center; font: 700 11px 'Outfit', sans-serif; color: #fff; }
+.miss b { display: block; font-size: 13px; line-height: 1.25; }
+.miss small { color: var(--accent-hover); font-size: 11px; }
+.link-done { margin: 14px 0 0; color: #7be3a8; font-size: 13px; }
+.link-modal { position: fixed; inset: 0; z-index: 50; background: rgba(0, 0, 0, .6); display: grid; place-items: center; padding: 16px; }
+.link-box { width: min(640px, 100%); max-height: 86vh; overflow: auto; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 18px; }
+.link-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.link-head h2 { margin: 0; font-size: 17px; }
+.link-form { display: flex; gap: 8px; margin: 14px 0; }
+.link-form input { flex: 1; min-width: 0; height: 38px; padding: 0 12px; border-radius: 8px; border: 1px solid var(--line); background: var(--bg); }
+.link-results { display: grid; gap: 8px; }
+.pick { display: grid; grid-template-columns: 44px 1fr; gap: 12px; align-items: center; text-align: left; padding: 8px; border-radius: 10px; border: 1px solid var(--line); background: var(--bg); color: var(--text); cursor: pointer; }
+.pick:hover { border-color: var(--accent); }
+.pick img, .pick .ph { width: 44px; height: 64px; object-fit: cover; border-radius: 5px; background: var(--surface-2); display: block; }
+.pick b { display: block; font-size: 14px; }
+.pick small { color: var(--muted); font-size: 12px; }
