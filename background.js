@@ -1016,7 +1016,7 @@ async function calendarTick() {
       const ls = g.meta && g.platform === 'crunchyroll' ? latestCrSeason(g.meta) : null;
       const its = vo.length || cr ? buildCalendar({ ...g, count: (ls && ls.count) || null }, { vo, cr, now }) : [];
       // « sans dates » : seulement les animés que personne n'a su reconnaître (une série reconnue mais terminée n'a rien à annoncer)
-      if (!its.length && g.anime && !g.want && !aniOf.has(g.key)) missing.push({ key: g.key, title: g.title, platform: g.platform });
+      if (!its.length && g.anime && !g.want && !aniOf.has(g.key) && ids[g.key]) missing.push({ key: g.key, title: g.title, platform: g.platform });
       items.push(...its);
     }
     const prev = await getLocal('calendar', {});

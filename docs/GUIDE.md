@@ -1,4 +1,4 @@
-# Guide complet — tsukiboshi 月星 (v5.13.1)
+# Guide complet — tsukiboshi 月星 (v5.14)
 
 Plateformes : Netflix, Crunchyroll, ADN, Disney+, Prime Video.
 Fonctionne avec n'importe quel compte : l'extension utilise le compte connecté dans Chrome.
@@ -141,6 +141,16 @@ Onglet **Bilan** en haut de Ma liste : par année ou depuis le début.
 - **Résumé** : totaux par plateforme.
 
 Les doublons (même épisode vu en direct puis retrouvé dans l'historique) sont fusionnés automatiquement.
+
+## Nouveautés 5.14 (vérification complète)
+- **ADN** : une mise à jour ne supprime plus les épisodes importés avec les nouvelles adresses du site.
+- **Calendrier** : les animés au titre français (Crunchyroll, ADN) sont reconnus par leur lien, sans rien relier à la main ; « Séries suivies sans dates » ne liste plus que les animés vraiment non reconnus ; un « Je veux voir » commencé sort tout seul de la liste.
+- **Synchro** : une plateforme déconnectée est signalée en 20 secondes dans le popup (« Connexion requise ») au lieu de 3 minutes d'attente ; plus de « Synchronisé » affiché quand rien n'a été relu.
+- **Affiches Netflix** : l'image officielle n'est plus redemandée à chaque synchro.
+- **Sauvegarde** : le palmarès des tournois et les séries reliées à la main sont sauvegardés et restaurés.
+- **Épisodes marqués vus** : comptés dans la progression, pas dans les heures du Bilan ni dans les tournois (leur date n'est pas celle du visionnage).
+- **Ma liste** : la barre du haut ne déborde plus sur les écrans moyens, la page ne remonte plus pendant une lecture, l'onglet en cours reste visible sur téléphone.
+- Plus d'alerte « nouvel épisode » pour une série abandonnée.
 
 ## Nouveautés 5.13
 - Calendrier : séries sans dates reliées en un clic, rythme Crunchyroll pour les séries non reconnues, une fiche par épisode.

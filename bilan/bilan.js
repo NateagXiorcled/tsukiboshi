@@ -1,3 +1,4 @@
+import { showActiveTab } from '../lib/layout.js';
 // tsukiboshi — page « Bilan » : ton année (ou tout ton historique) en chiffres
 const PLATFORMS = { netflix: 'Netflix', crunchyroll: 'Crunchyroll', adn: 'ADN', disney: 'Disney+', prime: 'Prime Video' };
 const COLORS = { netflix: '#e50914', crunchyroll: '#f47521', adn: '#0099e5', disney: '#3a67ff', prime: '#00a8e1' };
@@ -334,3 +335,5 @@ document.addEventListener('mouseleave', () => (tip.hidden = true));
 
 chrome.storage.onChanged.addListener((c, area) => { if (area === 'local' && (c.entries || c.art || c.shows || c.genres || c.tournaments)) load(); });
 load();
+
+showActiveTab();

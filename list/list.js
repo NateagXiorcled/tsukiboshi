@@ -853,8 +853,12 @@ $('grid').onkeydown = (e) => {
 function markBox(s) {
   const li = s.lastItem || {};
   const next = s.prog && s.prog.next;
-  const season = (next && next.season) ?? li.seasonNum ?? 1;
-  const from = (next && next.ep) || (typeof li.epNum === 'number' ? li.epNum + 1 : 1);
+  // dernier épisode vu : numéros enregistrés, sinon lus dans son libellé (« S2 E7 - … », « Épisode 7 »)
+  const lab = String(li.episode || '');
+  const liS = typeof li.seasonNum === 'number' ? li.seasonNum : +((lab.match(/^S(\d+)\b/i) || [])[1] || 0) || null;
+  const liE = typeof li.epNum === 'number' ? li.epNum : +((lab.match(/\bE(\d+)\b/i) || lab.match(/[ée]pisode\s*(\d+)/i) || [])[1] || 0) || null;
+  const season = (next && next.season) ?? liS ?? 1;
+  const from = (next && next.ep) || (liE ? liE + 1 : 1);
   return `<div class="mark-box">
     <b>Marquer comme vu</b>
     ${next ? `<button class="btn secondary" data-mark-next>✓ ${esc(epLabel(next))} vu</button>` : ''}

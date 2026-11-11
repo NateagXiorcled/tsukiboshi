@@ -1,3 +1,4 @@
+import { showActiveTab } from '../lib/layout.js';
 // tsukiboshi — Tournoi : tes titres de la semaine, du mois ou de l'année s'affrontent en duels
 import { participants, periodRange, periodId, periodLabel, bracketSize, firstRound, roundName, tierList, megaRound, monthChampions } from '../lib/tournament.js';
 
@@ -392,3 +393,5 @@ renderHome();
 const h = location.hash.slice(1);
 if (['week', 'month', 'year'].includes(h) && bracketSize(participants(data.entries, periodRange(h)).length)) start(h);
 else if (h === 'mega' && megaList(megaYear()).length >= 4) start('mega');
+
+showActiveTab();
