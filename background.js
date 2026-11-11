@@ -912,7 +912,7 @@ async function seasonLists(now) {
     const id = `${x.year}-${x.season}`;
     if (!cache[id] || now - cache[id].at > 24 * 3600e3) {
       try {
-        const list = (await seasonAnime(x.season, x.year)).map(({ description, relations, manga, ...m }) => m);
+        const list = (await seasonAnime(x.season, x.year, 3, false)).map(({ description, relations, manga, ...m }) => m);
         cache[id] = { at: now, list };
         changed = true;
       } catch { /* AniList indisponible : on fait avec ce qu'on a */ }
