@@ -135,7 +135,7 @@ function openDetail(m) {
     </div>
     ${genres.length ? `<div class="d-genres">${genres.map((g) => `<span class="g-chip">${esc(g)}</span>`).join('')}</div>` : ''}
     ${m.nextAiring ? `<p class="d-alt">Épisode ${m.nextAiring.ep} : ${new Date(m.nextAiring.at).toLocaleString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' })}</p>` : ''}
-    ${seen ? `<div class="mine-box">✓ Déjà dans ton historique (${esc(PLATFORMS[seen.platform] || seen.platform)}${seen.eps.size ? `, ${seen.eps.size} épisode${seen.eps.size > 1 ? 's' : ''}` : ''}) · <a href="../list/list.html#${encodeURIComponent(seen.key)}">Voir dans Ma liste</a></div>` : ''}
+    ${seen ? `<div class="mine-box">✓ Déjà dans ton historique (${esc(PLATFORMS[seen.platform] || seen.platform)}${seen.eps.size ? `, ${seen.eps.size} épisode${seen.eps.size > 1 ? 's' : ''}` : ''}) · <a href="../list/list.html#${encodeURIComponent(seen.key)}" target="_top">Voir dans Ma liste</a></div>` : ''}
     <h3 class="d-section">Où le regarder</h3>
     <div class="where">${where.length
       ? where.map((l) => `<a class="${l.mine ? 'mine' : ''}" href="${esc(l.url)}" target="_blank" rel="noopener"${l.p === 'netflix' ? ` data-nf-title="${esc(m.title)}"` : ''}>${l.p ? `<span class="dot" style="background:${COLORS[l.p]}"></span>` : ''}${esc(l.name)}</a>`).join('')
@@ -170,7 +170,11 @@ const searchOn = (p, q) => ({
   adn: `https://animationdigitalnetwork.com/video?search=${encodeURIComponent(q)}`,
   netflix: `https://www.netflix.com/search?q=${encodeURIComponent(q)}`,
 }[p]);
+// fiche ouverte dans un volet d'une autre page (Saisons) : fermer = rendre la main à cette page
+const EMBED = /[#&]embed\b/.test(location.hash) && window.parent !== window;
+if (EMBED) document.documentElement.classList.add('embed');
 function closeDetail() {
+  if (EMBED) { window.parent.postMessage({ tsuki: 'detail-close' }, location.origin); return; }
   $('drawer').classList.remove('open');
   $('drawer').setAttribute('aria-hidden', 'true');
   $('overlay').hidden = true;
@@ -222,6 +226,6 @@ initLayout(() => { if (results.length) $('grid').innerHTML = results.map(card).j
 // recherche passée dans l'adresse (ex. recherche.html#frieren)
 await loadMine();
 const h = decodeURIComponent(location.hash.slice(1));
-const byId = h.match(/^id:(\d+)$/);
-if (byId) { trending(); openById(+byId[1]); }
+const byId = h.match(/^id:(\d+)/);
+if (byId) { if (!EMBED) trending(); openById(+byId[1]); }
 else if (h) { $('q').value = h; search(h); } else trending();

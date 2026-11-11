@@ -207,6 +207,8 @@ function filtered() {
     count: (a, b) => b.episodes - a.episodes,
     time: (a, b) => b.secs - a.secs,
     rating: (a, b) => (b.rating || 0) - (a.rating || 0) || b.fav - a.fav || (b.last ?? 0) - (a.last ?? 0),
+    // du moins bien noté au mieux noté ; les titres sans note restent à la fin dans les deux sens
+    ratingAsc: (a, b) => (!a.rating - !b.rating) || (a.rating || 0) - (b.rating || 0) || (b.last ?? 0) - (a.last ?? 0),
   }[view.sort];
   return list.sort(by);
 }

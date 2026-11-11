@@ -21,7 +21,7 @@ Extension pour **Chrome, Edge, Opera, Brave et Vivaldi** qui récupère tout ton
 - **À suivre** : reprendre un épisode en cours ou lancer le suivant en un clic (seulement ce qui est à lancer, pas une liste sans fin).
 - **Marquer comme vu** : dans la fiche d'un titre, ou avec le bouton « Marquer comme vu » de Crunchyroll.
 - **Alertes de nouveaux épisodes** pour tes simulcasts Crunchyroll, et dès qu'un épisode sort en VF.
-- **Tournoi** : tes titres de la semaine, du mois ou de l'année s'affrontent en duels jusqu'au champion, avec ta **tier list** (S, A, B, C, D) et une image à partager ; le **méga-tournoi** fait s'affronter les champions de chaque mois.
+- **Tournoi** : tous tes titres de la semaine, du mois ou de l'année s'affrontent en duels jusqu'au champion, avec ta **tier list** (S, A, B, C, D) et une image à partager ; le **méga-tournoi** fait s'affronter les champions de chaque mois. Chaque tournoi est gardé et se revoit depuis le palmarès.
 - **Bilan** : heures regardées, calendrier de tes soirées, top 10, genres préférés, records.
 - **Notes, favoris et avis** sur chaque titre, et un statut *Abandonné* pour ce que tu as laissé tomber.
 - **Sauvegarde / restauration** pour changer de PC sans rien perdre.

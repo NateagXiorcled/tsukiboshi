@@ -31,3 +31,8 @@ main .row-title { margin-top: 18px; }
 .manga-box .m-facts { color: var(--muted); font-size: 12px; margin-top: 2px; }
 .manga-box .where { margin-top: 8px; }
 .manga-box .where a { height: 30px; font-size: 12px; }
+
+/* fiche affichée dans un volet d'une autre page (Saisons) */
+.embed, .embed body { background: transparent; }
+.embed .top, .embed main, .embed .overlay { display: none !important; }
+.embed .drawer { position: fixed; inset: 0; width: 100%; max-width: none; transform: none; transition: none; }

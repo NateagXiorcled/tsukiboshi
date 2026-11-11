@@ -486,7 +486,7 @@ async function restoreBackup(payload) {
     // palmarès des tournois (un par période, le plus récent gagne) et séries reliées à la main dans le calendrier
     const tBy = new Map();
     for (const t of [...(d.tournaments || []), ...(cur.tournaments || [])]) if (t && t.id && (!tBy.has(t.id) || (t.at || 0) > (tBy.get(t.id).at || 0))) tBy.set(t.id, t);
-    const tournaments = [...tBy.values()].sort((a, b) => (a.at || 0) - (b.at || 0)).slice(-60);
+    const tournaments = [...tBy.values()].sort((a, b) => (a.at || 0) - (b.at || 0)).slice(-200);
     const aniIds = merge(cur.aniIds, d.aniIds, (x, y) => !x.manual && (!!y.manual || (!x.id && !!y.id)));
     await chrome.storage.local.set({ shows, art, genres, meta, wishlist, settings, sync, profiles, suitesHidden, tournaments, aniIds });
   });

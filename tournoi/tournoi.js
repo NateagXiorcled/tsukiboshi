@@ -1,6 +1,6 @@
 import { showActiveTab } from '../lib/layout.js';
 // tsukiboshi — Tournoi : tes titres de la semaine, du mois ou de l'année s'affrontent en duels
-import { participants, periodRange, periodId, periodLabel, bracketSize, firstRound, roundName, tierList, megaRound, monthChampions } from '../lib/tournament.js';
+import { participants, periodRange, periodId, periodLabel, roundName, tierList, megaRound, monthChampions, allRound, packRounds, unpackRounds } from '../lib/tournament.js';
 
 const PLATFORMS = { netflix: 'Netflix', crunchyroll: 'Crunchyroll', adn: 'ADN', disney: 'Disney+', prime: 'Prime Video' };
 const $ = (id) => document.getElementById(id);
@@ -32,18 +32,18 @@ const PERIODS = [['week', 'Cette semaine'], ['month', 'Ce mois-ci'], ['year', 'C
 function renderHome() {
   $('periods').innerHTML = PERIODS.map(([id, label]) => {
     const list = participants(data.entries, periodRange(id));
-    const n = bracketSize(list.length);
+    const n = list.length >= 2 ? Math.min(list.length, 256) : 0; // tous les titres regardés participent
     const posters = list.slice(0, 4).map((p) => posterOf(p.key)).filter(Boolean);
     return `<button class="period" data-period="${id}" ${n ? '' : 'disabled'} role="listitem">
       <div class="p-bg">${posters.map((s) => `<img src="${esc(s)}" alt="" referrerpolicy="no-referrer">`).join('')}</div>
       <b>${label}</b>
       <span>${list.length} titre${list.length > 1 ? 's' : ''} regardé${list.length > 1 ? 's' : ''}</span>
-      <span class="go">${n ? `Tournoi à ${n} →` : 'Pas assez de titres (4 minimum)'}</span>
+      <span class="go">${n ? `Tournoi à ${n} · ${n - 1} duel${n > 2 ? 's' : ''} →` : 'Pas assez de titres (2 minimum)'}</span>
     </button>`;
   }).join('') + megaCard();
   const champs = data.tournaments.slice().reverse();
   $('palmares').hidden = !champs.length;
-  $('champs').innerHTML = champs.map((t) => `<div class="champ-mini">
+  $('champs').innerHTML = champs.map((t, i) => `<button class="champ-mini" data-t="${champs.length - 1 - i}" title="Revoir ce tournoi : duels et tier list">
       <div class="thumb">${visual(t.champion)}<span class="crown">👑</span></div>
       <div class="c-title">${esc(t.champion.title)}</div>
       <div class="c-when">Champion ${esc(t.label)}</div>
@@ -93,8 +93,8 @@ function start(period) {
     id = String(year);
   } else {
     const list = participants(data.entries, periodRange(period));
-    pairs = firstRound(list);
-    n = pairs.length * 2;
+    pairs = allRound(list);
+    n = Math.min(list.length, 256);
     label = periodLabel(period);
     id = periodId(period);
   }
@@ -181,6 +181,7 @@ function beaten(champ) {
   for (const round of T.rounds) for (const m of round) if (m.w === champ) out.push(m.a === champ ? m.b : m.a);
   return out.filter(Boolean);
 }
+// affiche le champion, le tableau et la tier list du tournoi T (qu'il vienne de se finir ou qu'on le revoie)
 async function finish() {
   const champ = T.rounds[T.rounds.length - 1][0].w;
   const path = beaten(champ);
@@ -194,15 +195,18 @@ async function finish() {
       <p class="stats">${esc(facts(champ))}</p>
     </div>`;
   renderBracket($('finalBracket'));
-  T.tiers = tierList(T.rounds);
+  T.tiers = T.oldTiers || tierList(T.rounds);
   renderTiers();
   const rated = data.shows[champ.key] && data.shows[champ.key].rating;
   $('rate5').hidden = rated === 5;
-  // palmarès : un champion par période (le dernier tournoi remplace le précédent)
+  $('rate5').disabled = false; $('rate5').textContent = 'Lui mettre 5 ★';
+  $('playedOn').hidden = !T.saved;
+  if (T.saved) { $('playedOn').textContent = `Tournoi joué le ${new Date(T.saved).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}`; show('champion'); return; }
+  // palmarès : chaque tournoi est gardé (duels, choix et tier list), pour le revoir quand on veut
   const now = new Date();
-  const entry = { id: `${T.period}:${T.id}`, period: T.period, label: T.period === 'week' ? `de la semaine du ${weekStart(now)}` : T.label,
+  const entry = { id: `${T.period}:${T.id}:${Date.now().toString(36)}`, period: T.period, saved: packRounds(T.rounds), label: T.period === 'week' ? `de la semaine du ${weekStart(now)}` : T.label,
     tiers: T.tiers.map((t) => ({ tier: t.tier, items: t.items.map((p) => ({ key: p.key, title: p.title, platform: p.platform })) })), champion: { key: champ.key, title: champ.title, platform: champ.platform }, finalist: (T.rounds[T.rounds.length - 1][0].a === champ ? T.rounds[T.rounds.length - 1][0].b : T.rounds[T.rounds.length - 1][0].a).title, size: T.rounds[0].length * 2, at: Date.now() };
-  data.tournaments = data.tournaments.filter((t) => t.id !== entry.id).concat(entry).slice(-60);
+  data.tournaments = data.tournaments.concat(entry).slice(-200);
   await chrome.storage.local.set({ tournaments: data.tournaments });
   show('champion');
   confetti();
@@ -297,6 +301,22 @@ function confetti() {
   setTimeout(() => box.remove(), 4500);
 }
 $('again').onclick = () => { T = null; load().then(renderHome); };
+// palmarès : revoir un tournoi passé (tableau complet avec les choix, tier list, images à télécharger)
+$('champs').addEventListener('click', (e) => {
+  const b = e.target.closest('[data-t]');
+  const t = b && data.tournaments[+b.dataset.t];
+  if (!t) return;
+  const label = t.label || '';
+  let rounds = unpackRounds(t.saved);
+  if (!rounds.length) {
+    // tournoi d'avant la 5.15 : seuls le champion et la tier list avaient été gardés
+    const fin = { key: 'finaliste', title: t.finalist || '—', platform: t.champion.platform };
+    const champ = { ...t.champion };
+    rounds = [[{ a: champ, b: fin, w: champ }]];
+  }
+  T = { period: t.period, label, id: String(t.id).split(':')[1] || '', rounds, r: rounds.length - 1, m: 0, saved: t.at || Date.now(), oldTiers: rounds.length === 1 && t.tiers ? t.tiers : null };
+  finish();
+});
 $('rate5').onclick = async () => {
   const { shows = {} } = await chrome.storage.local.get('shows');
   shows[T.champ.key] = { ...(shows[T.champ.key] || {}), rating: 5, updated: Date.now() };
@@ -391,7 +411,7 @@ await load();
 renderHome();
 // lancement direct depuis le Bilan (tournoi.html#year)
 const h = location.hash.slice(1);
-if (['week', 'month', 'year'].includes(h) && bracketSize(participants(data.entries, periodRange(h)).length)) start(h);
+if (['week', 'month', 'year'].includes(h) && participants(data.entries, periodRange(h)).length >= 2) start(h);
 else if (h === 'mega' && megaList(megaYear()).length >= 4) start('mega');
 
 showActiveTab();

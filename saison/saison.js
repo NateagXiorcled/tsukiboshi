@@ -145,12 +145,37 @@ $('grid').addEventListener('click', async (e) => {
     return;
   }
   const c = e.target.closest('.card');
-  if (c) location.href = `../recherche/recherche.html#id:${c.dataset.id}`;
+  if (c) openDetail(+c.dataset.id);
 });
 $('grid').addEventListener('keydown', (e) => {
   const c = e.target.closest('.card');
-  if (c && e.target === c && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); location.href = `../recherche/recherche.html#id:${c.dataset.id}`; }
+  if (c && e.target === c && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); openDetail(+c.dataset.id); }
 });
+
+// ---------- fiche d'un animé : volet par-dessus la saison (on ne quitte pas la page) ----------
+let detailId = null;
+function openDetail(id) {
+  detailId = id;
+  $('detailFrame').src = `../recherche/recherche.html#id:${id}&embed`;
+  $('detail').hidden = false;
+  document.body.style.overflow = 'hidden';
+}
+async function closeDetail() {
+  if ($('detail').hidden) return;
+  $('detail').hidden = true;
+  $('detailFrame').src = 'about:blank';
+  document.body.style.overflow = '';
+  // « Je veux voir » a pu changer dans la fiche : la carte est remise à jour, et le focus y revient
+  await loadMine();
+  const m = list.find((x) => x.id === detailId);
+  const el = document.querySelector(`.card[data-id="${detailId}"]`);
+  if (m && el) el.outerHTML = card(m);
+  const back = document.querySelector(`.card[data-id="${detailId}"]`);
+  if (back) back.focus({ preventScroll: true });
+}
+window.addEventListener('message', (e) => { if (e.origin === location.origin && e.data && e.data.tsuki === 'detail-close') closeDetail(); });
+$('detail').addEventListener('click', (e) => { if (e.target.id === 'detail') closeDetail(); });
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeDetail(); });
 
 await loadMine();
 initLayout(() => render());
