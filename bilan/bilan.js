@@ -52,7 +52,7 @@ $('period').onclick = (e) => {
 };
 
 function render() {
-  const list = data.entries.filter((e) => period === 'all' || evening(e).getFullYear() === period).map((e) => ({ ...e, dur: duration(e), ev: evening(e) }));
+  const list = data.entries.filter((e) => e.source !== 'marked').filter((e) => period === 'all' || evening(e).getFullYear() === period).map((e) => ({ ...e, dur: duration(e), ev: evening(e) }));
   // une journée ne peut pas dépasser 14 h : au-delà (épisodes passés en accéléré, marqués vus…), on ramène au plafond
   const perDay = new Map();
   for (const e of list) perDay.set(dayKey(e.ev), (perDay.get(dayKey(e.ev)) || 0) + e.dur.s);

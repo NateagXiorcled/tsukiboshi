@@ -15,7 +15,7 @@
         const label = (x.season ? `S${x.season} ` : '') + (x.ep != null && x.ep !== '' ? `E${x.ep} - ` : '') + String(x.title || '').trim();
         return {
           platform: 'crunchyroll', title: String(x.series).trim(), episode: label, date: now - i, hasTime: true,
-          seconds: length, length, progress: 1, url: `https://www.crunchyroll.com/fr/watch/${x.id}/${x.slug || ''}`,
+          seconds: null, length, progress: 1, url: `https://www.crunchyroll.com/fr/watch/${x.id}/${x.slug || ''}`,
           seriesId: x.seriesId || '', seasonId: x.seasonId || '', seasonNum: typeof x.season === 'number' ? x.season : null, epNum: typeof x.ep === 'number' ? x.ep : null,
           source: 'marked',
         };

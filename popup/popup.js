@@ -38,13 +38,17 @@ async function render() {
   for (const [id, name] of Object.entries(s.platforms)) {
     const importable = s.importable.includes(id);
     const sync = s.sync[id];
+    // dernière synchro ratée : on dit pourquoi (au lieu d'un « synchronisé » trompeur)
+    const SYNC_ERR = { login: 'Connexion requise : ouvre le site et reconnecte-toi', timeout: 'Le site n\'a pas répondu, réessaie plus tard', closed: 'Synchro interrompue', empty: 'Rien trouvé : vérifie que tu es connecté sur le site', error: 'Erreur pendant la synchro' };
+    const failed = importable && sync?.enabled && sync.error && (sync.tried || 0) > (sync.last || 0);
     const sub = !importable ? 'Suivi pendant la lecture'
+      : failed ? SYNC_ERR[sync.error] || SYNC_ERR.error
       : sync?.enabled ? (sync.last ? `Synchronisé ${when(sync.last, true)}` : 'Synchro active') : 'Pas encore importé';
 
     const li = document.createElement('li');
     const dot = document.createElement('span'); dot.className = 'dot'; dot.style.background = COLORS[id];
     const nm = document.createElement('span'); nm.className = 'p-name'; nm.textContent = name;
-    const sb = document.createElement('span'); sb.className = 'p-sub'; sb.textContent = sub; nm.appendChild(sb);
+    const sb = document.createElement('span'); sb.className = 'p-sub' + (failed ? ' warn' : ''); sb.textContent = sub; nm.appendChild(sb);
     const ct = document.createElement('span'); ct.className = 'p-count'; ct.textContent = fmtN(s.counts[id] || 0);
     const act = document.createElement('span'); act.className = 'p-act';
     if (importable) {

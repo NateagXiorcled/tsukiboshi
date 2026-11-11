@@ -145,3 +145,5 @@ main { padding: 16px; }
 .update-help b { color: #fff; }
 
 .lang-row select { height: 32px; padding: 0 8px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); color: var(--text); font: 600 12px 'Inter', sans-serif; flex: none; }
+
+.p-sub.warn { color: #ffb454; }

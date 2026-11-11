@@ -294,8 +294,10 @@ function render() {
   // rendu par paquets pour rester fluide avec beaucoup de séries
   const grid = $('grid');
   const gen = ++renderGen; // un nouveau rendu annule le remplissage en cours de l'ancien
-  grid.innerHTML = list.slice(0, 120).map(card).join('');
-  let i = 120;
+  // on redessine d'un coup autant de vignettes qu'il y en avait déjà : la page ne saute pas quand on est descendu loin
+  const first = Math.max(120, Math.min(list.length, grid.children.length));
+  grid.innerHTML = list.slice(0, first).map(card).join('');
+  let i = first;
   const more = () => {
     if (gen !== renderGen || i >= list.length) return;
     grid.insertAdjacentHTML('beforeend', list.slice(i, i + 120).map(card).join(''));
@@ -1006,10 +1008,12 @@ chrome.storage.onChanged.addListener((changes, area) => {
     for (const card of document.querySelectorAll('.card')) {
       const sh = shows.find((x) => x.key === card.dataset.key);
       const img = card.querySelector('.thumb img');
-      const src = sh && (sh.poster || sh.image || sh.wide);
+      const H = isHorizontal();
+      const src = sh && (H ? (sh.custom ? sh.poster : sh.wide) || sh.poster || sh.image : sh.poster || sh.image || sh.wide);
       if (sh && src && (!img || img.getAttribute('src') !== src)) {
         const box = card.querySelector('.thumb');
-        (box.querySelector('img, .ph') || box.firstChild).outerHTML = visual(sh);
+        box.querySelector('.blur')?.remove();
+        (box.querySelector('img, .ph') || box.firstChild).outerHTML = H ? wideVisual(sh) : visual(sh);
       }
     }
     requestAnimationFrame(fitAll);

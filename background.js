@@ -1,7 +1,7 @@
 import { buildXlsx } from './xlsx.js';
 import { seriesProgress } from './lib/progress.js';
 import { bestArtwork, searchArtwork, sourceStats, testSources, genresFor } from './lib/artwork.js';
-import { findAnimeIds, fetchMedia, searchAnime, trendingAnime, fetchAiring, seasonAnime, platformOfLink, AniLimit } from './lib/anilist.js';
+import { findAnimeIds, fetchMedia, searchAnime, trendingAnime, fetchAiring, seasonAnime, seasonOf, shiftSeason, platformOfLink, AniLimit } from './lib/anilist.js';
 import { buildCalendar } from './lib/calendar.js';
 import { seasonGroups } from './lib/progress.js';
 import { computeSuites } from './lib/suites.js';
@@ -216,6 +216,9 @@ function addEntries(list) {
   });
 }
 
+// si le navigateur a coupé l'extension pendant un export discret, la bulle des téléchargements pouvait rester masquée
+try { chrome.downloads.setUiOptions({ enabled: true }).catch(() => {}); } catch {}
+
 // ---------- Excel ----------
 let exportTimer = null;
 async function scheduleExport() {
@@ -413,7 +416,7 @@ async function exportExcel() {
 }
 
 // ---------- Sauvegarde / restauration (changement de PC, réinstallation de Chrome…) ----------
-const BACKUP_KEYS = ['entries', 'shows', 'wishlist', 'meta', 'art', 'genres', 'settings', 'sync', 'profiles', 'suitesHidden'];
+const BACKUP_KEYS = ['entries', 'shows', 'wishlist', 'meta', 'art', 'genres', 'settings', 'sync', 'profiles', 'suitesHidden', 'tournaments', 'aniIds'];
 const BACKUP_AUTO = 'Tsukiboshi/Tsukiboshi - sauvegarde automatique.json';
 
 async function backupBytes() {
@@ -462,7 +465,7 @@ async function restoreBackup(payload) {
   const after = Object.keys(await getEntries()).length;
   const out = { lignes: after - before, total: after };
   await withLock(async () => {
-    const cur = await chrome.storage.local.get(['shows', 'wishlist', 'meta', 'art', 'genres', 'settings', 'sync', 'profiles', 'suitesHidden']);
+    const cur = await chrome.storage.local.get(['shows', 'wishlist', 'meta', 'art', 'genres', 'settings', 'sync', 'profiles', 'suitesHidden', 'tournaments', 'aniIds']);
     const merge = (a = {}, b = {}, keep) => {
       const o = { ...a };
       for (const [k, v] of Object.entries(b)) if (!(k in o) || keep(o[k], v)) o[k] = v;
@@ -480,7 +483,12 @@ async function restoreBackup(payload) {
     out.choix = Object.keys(shows).length - Object.keys(cur.shows || {}).length;
     out.affiches = Object.values(art).filter((a) => a.poster).length - Object.values(cur.art || {}).filter((a) => a.poster).length;
     const suitesHidden = { ...(d.suitesHidden || {}), ...(cur.suitesHidden || {}) };
-    await chrome.storage.local.set({ shows, art, genres, meta, wishlist, settings, sync, profiles, suitesHidden });
+    // palmarès des tournois (un par période, le plus récent gagne) et séries reliées à la main dans le calendrier
+    const tBy = new Map();
+    for (const t of [...(d.tournaments || []), ...(cur.tournaments || [])]) if (t && t.id && (!tBy.has(t.id) || (t.at || 0) > (tBy.get(t.id).at || 0))) tBy.set(t.id, t);
+    const tournaments = [...tBy.values()].sort((a, b) => (a.at || 0) - (b.at || 0)).slice(-60);
+    const aniIds = merge(cur.aniIds, d.aniIds, (x, y) => !x.manual && (!!y.manual || (!x.id && !!y.id)));
+    await chrome.storage.local.set({ shows, art, genres, meta, wishlist, settings, sync, profiles, suitesHidden, tournaments, aniIds });
   });
   scheduleExport();
   return out;
@@ -498,7 +506,7 @@ function cleanUrl(u) {
 
 function onHeartbeat(msg, sender) {
   const tab = sender.tab;
-  if (!tab || !PLATFORMS[msg.platform]) return;
+  if (!tab || !tab.url || !PLATFORMS[msg.platform]) return;
   return withLock(async () => {
     if (!WATCH_URL[msg.platform].test(new URL(tab.url).pathname)) return;
     const { pending = {} } = await chrome.storage.session.get('pending');
@@ -512,7 +520,10 @@ function onHeartbeat(msg, sender) {
       if (s?.key) { await flushSeconds(entries, s); scheduleExport(); } // épisode précédent terminé → met à jour l'Excel
       s = { url, seconds: 0, key: null };
     }
-    s.seconds += Math.min(msg.delta || 0, 15);
+    // jamais plus que le temps réellement écoulé (deux lecteurs dans la même page ne comptent pas double)
+    const beat = Date.now();
+    s.seconds += Math.max(0, Math.min(msg.delta || 0, 15, s.at ? (beat - s.at) / 1000 + 0.5 : 15));
+    s.at = beat;
     play[tab.id] = s;
 
     if (!s.key && s.seconds >= MIN_SECONDS) {
@@ -575,6 +586,8 @@ chrome.tabs.onRemoved.addListener((tabId) => {
     delete play[tabId];
     await chrome.storage.session.set({ play });
   });
+  // fenêtre de synchro fermée à la main : on passe tout de suite à la plateforme suivante
+  syncWaiters[tabId]?.({ ok: false, reason: 'closed' });
 });
 
 // ---------- affiches automatiques (AniList / TVmaze / iTunes) ----------
@@ -663,7 +676,7 @@ async function artTick() {
         // image Netflix identique pour plusieurs titres : générique, traitée comme « pas d'image officielle »
         const shared = sharedNetflixArt(cur, Object.entries(found).filter(([, v]) => v.official && v.poster));
         for (const [k, v0] of Object.entries(found)) {
-          const v = v0.official && shared.has(artImgId(v0.poster)) ? { poster: '', fetched: now, withUrl: true, nfTried: true } : v0;
+          const v = v0.official && shared.has(artImgId(v0.poster)) ? { poster: '', fetched: Date.now(), withUrl: true, nfTried: true } : v0;
           // revérification interrompue (source saturée) : on garde l'affiche actuelle et on retente plus tard
           if (!v.poster && v.retryAt && cur[k] && cur[k].poster && cur[k].recheck) cur[k] = { ...cur[k], retryAt: v.retryAt };
           // pas d'image officielle Netflix (ou rien trouvé cette fois) : on garde l'affiche déjà trouvée
@@ -781,12 +794,20 @@ async function suitesTick() {
       const a = art[g.key];
       if (!ids[g.key] && a && /^anilist:\d+$/.test(a.id || '')) ids[g.key] = { id: +a.id.split(':')[1], fetched: now };
     }
-    const todo = groups.filter((g) => !ids[g.key] || (!ids[g.key].id && now - ids[g.key].fetched > 14 * DAY)).slice(0, 48);
+    const fresh = {};
+    for (const g of groups) if (ids[g.key] && ids[g.key].fetched === now) fresh[g.key] = ids[g.key];
+    const todo = groups.filter((g) => !ids[g.key] || (!ids[g.key].id && !ids[g.key].manual && now - ids[g.key].fetched > 14 * DAY)).slice(0, 48);
     if (todo.length) {
       const found = await findAnimeIds(todo.map((g) => g.title));
-      for (const g of todo) ids[g.key] = { id: found[g.title] || null, fetched: now };
+      for (const g of todo) fresh[g.key] = ids[g.key] = { id: found[g.title] || null, fetched: now };
     }
-    await chrome.storage.local.set({ aniIds: ids });
+    // écriture fusionnée : un lien fait à la main pendant la recherche (calendrier, « Je veux voir ») n'est jamais écrasé
+    await withLock(async () => {
+      const cur = await getLocal('aniIds', {});
+      for (const [k, v] of Object.entries(fresh)) if (!cur[k] || (!cur[k].manual && !cur[k].id)) cur[k] = v;
+      Object.assign(ids, cur);
+      await chrome.storage.local.set({ aniIds: cur });
+    });
     // 2. fiches et suites (rafraîchies chaque semaine), puis on suit la chaîne des suites
     const media = await getLocal('aniMedia', {});
     let want = [...new Set(groups.map((g) => (ids[g.key] || {}).id).filter(Boolean))].filter((id) => !media[id] || !media[id].manga || now - media[id].fetched > 7 * DAY).slice(0, 60); // fiches d'avant la 5.12 : sans le manga
@@ -801,6 +822,7 @@ async function suitesTick() {
     if (!(e instanceof AniLimit)) logError('suites', e);
   } finally {
     suitesRunning = false;
+    if (calendarAgain) { calendarAgain = false; setTimeout(() => calendarTick(), 200); }
   }
 }
 
@@ -821,7 +843,7 @@ async function followedGroups() {
   // « Je veux voir » : animés pas encore commencés, suivis dans le calendrier
   const wishlist = await getLocal('wishlist', {});
   const wants = Object.values(wishlist).filter((w) => w.want && w.aniId && !map.has(w.key))
-    .map((w) => ({ key: w.key, title: w.title, platform: w.platform, items: [], last: 0, want: true, aniId: w.aniId, meta: null, anime: true }));
+    .map((w) => ({ key: w.key, title: w.title, platform: w.platform, items: [], last: 0, want: true, aniId: w.aniId, added: w.added || 0, meta: null, anime: true }));
   return [...map.values()].filter((g) => {
     const st = shows[g.key] && shows[g.key].status;
     if (st === 'done' || st === 'dropped' || NO_ART.test(g.title)) return false;
@@ -848,32 +870,121 @@ function currentAniId(id, media) {
   }
   return best;
 }
+// → { id, eps } ; { id: null, eps: [] } si la série est inconnue de TVmaze ; null si TVmaze n'a pas répondu (à retenter)
 async function tvmazeEpisodes(title) {
   const ctl = new AbortController(); const t = setTimeout(() => ctl.abort(), 15000);
   try {
     const r = await fetch(`https://api.tvmaze.com/singlesearch/shows?q=${encodeURIComponent(title)}&embed=episodes`, { signal: ctl.signal });
+    if (r.status === 404) return { id: null, eps: [] };
     if (!r.ok) return null;
     const j = await r.json();
     return { id: j.id, eps: ((j._embedded && j._embedded.episodes) || []).filter((e) => e.airstamp).map((e) => ({ s: e.season, ep: e.number, at: Date.parse(e.airstamp) })) };
   } catch { return null; } finally { clearTimeout(t); }
 }
+
+// Animés pas reconnus par leur titre (titre français de Crunchyroll / ADN…) : retrouvés par le lien de la plateforme.
+// Les fiches AniList des animés de la saison donnent l'adresse Crunchyroll (numéro de série) et ADN (titre dans l'adresse).
+function linkIndex(lists) {
+  const byCr = new Map(), bySlug = new Map();
+  for (const m of lists.flat()) {
+    for (const l of m.links || []) {
+      const p = platformOfLink(l.site);
+      const u = String(l.url || '');
+      if (p === 'crunchyroll') {
+        const id = (u.match(/\/series\/([A-Z0-9]{6,})/i) || [])[1];
+        if (id && !byCr.has(id.toUpperCase())) byCr.set(id.toUpperCase(), m.id);
+        const slug = (u.match(/\/series\/[A-Z0-9]+\/([^/?#]+)/i) || u.match(/crunchyroll\.com\/(?:[a-z]{2}(?:-[a-z]{2})?\/)?([^/?#]+)\/?$/i) || [])[1];
+        if (slug && !bySlug.has('crunchyroll|' + norm(slug))) bySlug.set('crunchyroll|' + norm(slug), m.id);
+      } else if (p === 'adn') {
+        const slug = (u.match(/\/video\/(?:\d+-)?([^/?#]+)/i) || [])[1];
+        if (slug && !bySlug.has('adn|' + norm(slug))) bySlug.set('adn|' + norm(slug), m.id);
+      }
+    }
+  }
+  return { byCr, bySlug };
+}
+async function seasonLists(now) {
+  const cache = await getLocal('seasonCache', {});
+  const cur = seasonOf(now), prev = shiftSeason(cur, -1);
+  const out = [];
+  let changed = false;
+  for (const x of [cur, prev]) {
+    const id = `${x.year}-${x.season}`;
+    if (!cache[id] || now - cache[id].at > 24 * 3600e3) {
+      try {
+        const list = (await seasonAnime(x.season, x.year)).map(({ description, relations, manga, ...m }) => m);
+        cache[id] = { at: now, list };
+        changed = true;
+      } catch { /* AniList indisponible : on fait avec ce qu'on a */ }
+    }
+    if (cache[id]) out.push(cache[id].list);
+  }
+  if (changed) {
+    const keep = Object.entries(cache).sort((a, b) => b[1].at - a[1].at).slice(0, 4);
+    await chrome.storage.local.set({ seasonCache: Object.fromEntries(keep) });
+  }
+  return out;
+}
+
+let calendarAgain = false; // une demande est arrivée pendant un calcul : on recommence juste après
 async function calendarTick() {
-  if (calendarRunning || suitesRunning || artRunning || genreRunning) return;
+  if (calendarRunning || suitesRunning) { calendarAgain = true; return; }
   calendarRunning = true;
+  calendarAgain = false;
   const now = Date.now();
   try {
     const groups = await followedGroups();
     const [ids, media, crEps, tvShows, settings] = await Promise.all([getLocal('aniIds', {}), getLocal('aniMedia', {}), getLocal('crEpisodes', {}), getLocal('tvShows', {}), getSettings()]);
+    // 0. animés pas reconnus par leur titre : retrouvés par le lien Crunchyroll / ADN des animés de la saison
+    const unknown = groups.filter((g) => g.anime && !g.want && !(ids[g.key] && (ids[g.key].id || ids[g.key].manual)));
+    if (unknown.length) {
+      const { byCr, bySlug } = linkIndex(await seasonLists(now));
+      const found = {};
+      for (const g of unknown) {
+        const sid = String((g.meta && g.meta.seriesId) || (g.items.find((e) => e.seriesId) || {}).seriesId || '').toUpperCase();
+        const id = (g.platform === 'crunchyroll' && sid && byCr.get(sid)) || bySlug.get(`${g.platform}|${norm(g.title)}`);
+        if (id) found[g.key] = { id, fetched: now, via: 'lien' };
+      }
+      if (Object.keys(found).length) {
+        await withLock(async () => {
+          const cur = await getLocal('aniIds', {});
+          for (const [k, v] of Object.entries(found)) if (!cur[k] || (!cur[k].id && !cur[k].manual)) cur[k] = v;
+          Object.assign(ids, cur);
+          await chrome.storage.local.set({ aniIds: cur });
+        });
+      }
+    }
     // 1. VO des animés : AniList, saison en cours
     const aniOf = new Map();
     for (const g of groups) {
-      if (g.want) aniOf.set(g.key, g.aniId); // titre choisi exprès : cette fiche-là, pas sa suite
-      else if (ids[g.key] && ids[g.key].manual) aniOf.set(g.key, ids[g.key].id); // lié à la main depuis le calendrier
+      if (g.want) continue;
+      if (ids[g.key] && ids[g.key].manual) aniOf.set(g.key, ids[g.key].id); // lié à la main depuis le calendrier
+      else if (ids[g.key] && ids[g.key].via === 'lien') aniOf.set(g.key, ids[g.key].id); // fiche de la saison en cours
       else if (g.anime && ids[g.key] && ids[g.key].id) aniOf.set(g.key, currentAniId(ids[g.key].id, media));
     }
+    // « Je veux voir » : la fiche choisie, sauf si la série est déjà suivie (pas de doublon dans le calendrier)
+    const covered = new Map([...aniOf].map(([k, id]) => [id, k]));
+    const started = [];
+    for (const g of groups) {
+      if (!g.want) continue;
+      const k = covered.get(g.aniId);
+      const base = k && groups.find((x) => x.key === k);
+      if (base) { if (base.items.some((e) => (e.date || 0) > (g.added || 0))) started.push(g.key); continue; }
+      aniOf.set(g.key, g.aniId);
+    }
+    if (started.length) {
+      // commencé depuis : le titre « Je veux voir » a fait son travail, il sort de la liste
+      await withLock(async () => {
+        const w = await getLocal('wishlist', {});
+        for (const k of started) delete w[k];
+        await chrome.storage.local.set({ wishlist: w });
+      });
+    }
+    const wantIds = [...new Set(aniOf.values())];
     let airing = await getLocal('aniAiring', {});
-    if (aniOf.size && now - (airing._at || 0) > 6 * 3600e3) {
-      try { airing = { ...(await fetchAiring([...new Set(aniOf.values())], now - 60 * DAY, now + 120 * DAY)), _at: now }; await chrome.storage.local.set({ aniAiring: airing }); } catch (e) { if (!(e instanceof AniLimit)) logError('calendrier', e); }
+    const have = new Set(airing._ids || []);
+    if (wantIds.length && (now - (airing._at || 0) > 6 * 3600e3 || wantIds.some((id) => !have.has(id)))) {
+      try { airing = { ...(await fetchAiring(wantIds, now - 30 * DAY, now + 120 * DAY)), _at: now, _ids: wantIds }; await chrome.storage.local.set({ aniAiring: airing }); } catch (e) { if (!(e instanceof AniLimit)) logError('calendrier', e); }
     }
     // 2. VO des séries (Netflix, Prime…) : TVmaze, rafraîchi chaque semaine
     let n = 0;
@@ -882,16 +993,19 @@ async function calendarTick() {
       const cur = tvShows[g.key];
       if (cur && now - cur.fetched < 7 * DAY) continue;
       const got = await tvmazeEpisodes(g.title);
-      tvShows[g.key] = { ...(got || { id: null, eps: [] }), fetched: now };
       n++;
+      if (!got) continue; // TVmaze n'a pas répondu : nouvel essai au prochain passage (pas dans une semaine)
+      tvShows[g.key] = { ...got, fetched: now };
     }
     if (n) await chrome.storage.local.set({ tvShows });
     // 3. assemblage
     const items = [];
     const missing = [];
+    const wantsDone = new Set(started);
     for (const g of groups) {
+      if (g.want && (wantsDone.has(g.key) || !aniOf.has(g.key))) continue;
       let vo = [];
-      if (g.anime && aniOf.has(g.key)) vo = airing[aniOf.get(g.key)] || [];
+      if (aniOf.has(g.key)) vo = airing[aniOf.get(g.key)] || [];
       else if (!g.anime && tvShows[g.key] && tvShows[g.key].eps.length) {
         const eps = tvShows[g.key].eps;
         const last = Math.max(...eps.filter((e) => e.at <= now).map((e) => e.s), ...eps.map((e) => (e.at > now ? e.s : 0)));
@@ -899,11 +1013,10 @@ async function calendarTick() {
         g.season = last;
       }
       const cr = crEps[g.key] || null;
-      if (!vo.length && !cr) { missing.push({ key: g.key, title: g.title, platform: g.platform }); continue; }
       const ls = g.meta && g.platform === 'crunchyroll' ? latestCrSeason(g.meta) : null;
-      const its = buildCalendar({ ...g, count: (ls && ls.count) || null }, { vo, cr, now });
-      // rien dans les 2 mois passés ni à venir : on la signale comme « sans dates »
-      if (!its.length) missing.push({ key: g.key, title: g.title, platform: g.platform });
+      const its = vo.length || cr ? buildCalendar({ ...g, count: (ls && ls.count) || null }, { vo, cr, now }) : [];
+      // « sans dates » : seulement les animés que personne n'a su reconnaître (une série reconnue mais terminée n'a rien à annoncer)
+      if (!its.length && g.anime && !g.want && !aniOf.has(g.key)) missing.push({ key: g.key, title: g.title, platform: g.platform });
       items.push(...its);
     }
     const prev = await getLocal('calendar', {});
@@ -920,6 +1033,7 @@ async function calendarTick() {
     logError('calendrier', e);
   } finally {
     calendarRunning = false;
+    if (calendarAgain) { calendarAgain = false; setTimeout(() => calendarTick(), 200); }
   }
 }
 
@@ -954,18 +1068,19 @@ async function syncOne(platform) {
   const tabId = win.tabs[0].id;
   await chrome.tabs.update(tabId, { muted: true }).catch(() => {});
   await setPending(tabId, { platform, silent: true });
-  await new Promise((resolve) => {
-    syncWaiters[tabId] = resolve;
+  // → { ok: true } si l'historique a été relu ; sinon la raison (pas connecté, délai dépassé, fenêtre fermée)
+  const result = await new Promise((resolve) => {
     let t = 0;
     const tick = setInterval(() => {
       chrome.runtime.getPlatformInfo(); // garde le service worker éveillé
-      if ((t += 10) >= 180) { clearInterval(tick); resolve(); } // 3 min au plus par plateforme
+      if ((t += 10) >= 180) { clearInterval(tick); resolve({ ok: false, reason: 'timeout' }); } // 3 min au plus par plateforme
     }, 10000);
-    syncWaiters[tabId] = () => { clearInterval(tick); resolve(); };
+    syncWaiters[tabId] = (r) => { clearInterval(tick); resolve(r || { ok: true }); };
   });
   delete syncWaiters[tabId];
   await setPending(tabId, null);
   await chrome.windows.remove(win.id).catch(() => {});
+  return result;
 }
 
 // ---------- Nouveaux épisodes (Crunchyroll) ----------
@@ -985,7 +1100,7 @@ function crGroups(entries) {
   return map;
 }
 function isFollowed(g, m, shows) {
-  return !!(g && m && m.simulcast && Date.now() - g.last < FOLLOW_DAYS * DAY && !(shows[g.key] && shows[g.key].status === 'done'));
+  return !!(g && m && m.simulcast && Date.now() - g.last < FOLLOW_DAYS * DAY && !(shows[g.key] && (shows[g.key].status === 'done' || shows[g.key].status === 'dropped')));
 }
 async function followedCount() {
   const [entries, meta, shows] = await Promise.all([getEntries(), getLocal('meta', {}), getLocal('shows', {})]);
@@ -1075,11 +1190,12 @@ async function runSync(force) {
       if (!sync[p]?.enabled) continue;
       // Crunchyroll plus souvent quand des séries en cours de diffusion sont suivies
       const every = p === 'crunchyroll' && (await followedCount()) ? NEW_EPS_EVERY_H : SYNC_EVERY_H;
-      if (!force && Date.now() - (sync[p].last || 0) < (every - 0.25) * 3600000) continue;
+      if (!force && Date.now() - Math.max(sync[p].last || 0, sync[p].tried || 0) < (every - 0.25) * 3600000) continue;
       syncCurrent = p;
-      await syncOne(p);
+      const res = await syncOne(p);
       const s2 = await getLocal('sync', {});
-      s2[p] = { ...s2[p], last: Date.now() };
+      // « synchronisé » seulement si l'historique a vraiment été relu ; sinon on garde la raison pour le popup
+      s2[p] = res.ok ? { ...s2[p], last: Date.now(), error: '' } : { ...s2[p], tried: Date.now(), error: res.reason || 'timeout' };
       await chrome.storage.local.set({ sync: s2 });
     }
   } finally {
@@ -1202,8 +1318,9 @@ function migrate() {
       if (e.platform === 'adn' && e.source === 'import' && e.url) {
         try {
           const path = new URL(e.url).pathname;
-          const i = path.indexOf('/video/');
-          badAdn = !/\/video\/\d+-[^/]+/.test(path); // menus : /video/genre/…, /video/order/…, /video/type/…
+          // seulement les menus (/video/genre/…, /video/order/…, /video/type/…) : les adresses d'épisodes du nouveau site
+          // (/video/<série>/<épisode>, sans numéro devant) sont de vrais visionnages
+          badAdn = /\/video\/(genre|genres|order|type|types|calendrier|calendar|catalogue|catalog|nouveau|nouveautes|populaire|simulcast|search|recherche)(\/|$)/.test(path);
         } catch {}
       }
       if (badCr || badPrime || badAdn) { delete entries[k]; n++; continue; }
@@ -1281,6 +1398,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
           if (out.has(k) || NO_ART.test(e.title || '')) continue;
           if ((shows[k] && shows[k].poster) || (meta[k] && meta[k].poster)) continue;
           if (art[k] && art[k].poster && (art[k].official || e.platform !== 'netflix')) continue; // Netflix : l'officielle remplace les autres
+          if (art[k] && art[k].poster && art[k].nfTried) continue; // image officielle déjà cherchée une fois : pas redemandée à chaque synchro
           out.set(k, { key: k, title: e.title });
         }
         return [...out.values()];
@@ -1298,6 +1416,8 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
             art[k] = { poster: v.poster, wide: v.wide || '', source: platformName(k), official: true, fetched: now, url: v.url || '' };
           }
           dropSharedNetflixArt(art, shared);
+          // pages de titres lues sans image exploitable : notées pour ne pas être relues à chaque synchro
+          for (const k of msg.tried || []) if (art[k] && !art[k].official) art[k].nfTried = true;
           await chrome.storage.local.set({ art });
         });
         scheduleExport();
@@ -1405,7 +1525,8 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         const cache = await getLocal('seasonCache', {});
         if (cache[id] && Date.now() - cache[id].at < 12 * 3600e3) return { results: cache[id].list };
         try {
-          const list = await seasonAnime(msg.season, msg.year);
+          // fiches allégées (le résumé et les suites se lisent dans la fiche complète)
+          const list = (await seasonAnime(msg.season, msg.year)).map(({ description, relations, manga, ...m }) => m);
           // on garde les 4 dernières saisons consultées
           const keep = Object.entries(cache).sort((a, b) => b[1].at - a[1].at).slice(0, 3);
           await chrome.storage.local.set({ seasonCache: { ...Object.fromEntries(keep), [id]: { at: Date.now(), list } } });
@@ -1673,14 +1794,14 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         setTimeout(() => artTick(), 3000);
         if (msg.count > 0) {
           const sync = await getLocal('sync', {});
-          sync[msg.platform] = { ...sync[msg.platform], enabled: true, last: Date.now() };
+          sync[msg.platform] = { ...sync[msg.platform], enabled: true, last: Date.now(), error: '' };
           await chrome.storage.local.set({ sync });
         }
         const tabId = sender.tab?.id;
         if (tabId != null) {
           const { pending = {} } = await chrome.storage.session.get('pending');
           if (pending[tabId] && !pending[tabId].silent) await setPending(tabId, null);
-          syncWaiters[tabId]?.();
+          syncWaiters[tabId]?.(msg.reason ? { ok: false, reason: msg.reason } : { ok: true });
         }
         return { ok: true };
       }

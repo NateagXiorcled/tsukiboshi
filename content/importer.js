@@ -125,7 +125,7 @@
         const list = netflixCsvEntries(await f.text());
         input.value = '';
         if (!list.length) return status("Ce fichier ne ressemble pas à l'export Netflix (colonnes Title et Date).");
-        await sendEntries(list, false);
+        try { await sendEntries(list, false); } catch (e) { status('Erreur : ' + (e?.message || e)); }
       };
     }
     root.querySelector('.x').onclick = () => { if (!running) { host.remove(); panel = null; } };
@@ -142,7 +142,7 @@
   // ---------- Défilement jusqu'à tout charger ----------
   function clickShowMore() {
     const b = [...document.querySelectorAll('button, a[role="button"], [role="button"]')].find(
-      (x) => x.offsetParent && /afficher plus|voir plus|charger plus|show more|load more|plus de r[ée]sultats/i.test(x.textContent)
+      (x) => x.offsetParent && /afficher plus|voir plus|charger plus|show more|load more|plus de r[ée]sultats|mehr anzeigen|mehr laden|mostrar m[aá]s|ver m[aá]s|mostra altro|mostrar mais|ver mais|meer weergeven|pokaż więcej|もっと見る|さらに表示/i.test(x.textContent)
     );
     if (b) b.click();
     return !!b;
@@ -746,12 +746,12 @@
     };
     const used = new Map(); // image → titres qui l'ont reçue pendant ce passage
     const imgId = (u) => { try { return new URL(u).pathname; } catch { return u; } };
-    let items = {}, n = 0, found = 0;
+    let items = {}, tried = [], n = 0, found = 0;
     const flush = async () => {
-      if (!Object.keys(items).length) return;
+      if (!Object.keys(items).length && !tried.length) return;
       found += Object.keys(items).length;
-      await VH.send({ type: 'setArt', items });
-      items = {};
+      await VH.send({ type: 'setArt', items, tried });
+      items = {}; tried = [];
     };
     for (const [k, href] of links) {
       try {
@@ -767,10 +767,11 @@
           const seenBy = used.get(imgId(poster)) || 0;
           if (poster) used.set(imgId(poster), seenBy + 1);
           if (poster && seenBy < 2) items[k] = { poster, wide: wide && wide !== poster ? wide : '', url: new URL(href, location.origin).href };
-        }
+          else tried.push(k);
+        } else if (r.status === 404) tried.push(k);
       } catch {}
       status(`Affiches Netflix : ${++n} / ${links.size}…`);
-      if (Object.keys(items).length >= 5) await flush(); // enregistrées au fur et à mesure
+      if (Object.keys(items).length + tried.length >= 5) await flush(); // enregistrées au fur et à mesure
       await VH.sleep(300);
     }
     await flush();
@@ -864,7 +865,8 @@
     await loadAll(() => netflixRows().length, { label: 'Lecture de l\'historique Netflix…' });
     return netflixMovies(netflixRows().map((row) => {
       const a = row.querySelector('.title a') || row.querySelector('a[href*="/title/"]');
-      const d = VH.parseDate((row.querySelector('.date') || row.querySelector('time') || row).textContent);
+      const dEl = row.querySelector('.date') || row.querySelector('time');
+      const d = dEl ? VH.parseDate(dEl.textContent) : dateIn(row); // sans case « date » : cherchée dans les textes de la ligne
       return {
         platform, profile,
         ...netflixTitle(a?.textContent || row.querySelector('.title')?.textContent || ''),
@@ -1153,8 +1155,9 @@
     if (!fromRun && boxEl) boxEl.classList.add('busy');
     for (let i = 0; i < entries.length; i += 500) {
       const r = await VH.send({ type: 'addEntries', entries: entries.slice(i, i + 500) });
-      res.added += r.added;
-      res.total = r.total;
+      if (!r || r.error) throw new Error(r && r.error ? r.error : "l'extension a été rechargée : recharge cette page puis relance l'import");
+      res.added += r.added || 0;
+      res.total = r.total || res.total;
       status(`Enregistrement… ${Math.min(i + 500, entries.length).toLocaleString('fr-FR')} / ${entries.length.toLocaleString('fr-FR')}`);
     }
     status(`Terminé ✓ ${entries.length.toLocaleString('fr-FR')} épisodes lus, ${res.added.toLocaleString('fr-FR')} nouveaux (total : ${res.total.toLocaleString('fr-FR')}). Le fichier Excel est à jour.`);
@@ -1173,12 +1176,13 @@
     stopAsked = false;
     if (btn) btn.disabled = true;
     if (boxEl) boxEl.classList.add('busy');
-    let count = 0;
+    let count = 0, failReason = '';
     try {
       status("Import en cours… Garde cet onglet ouvert. Si ton historique est très long, ça peut prendre plusieurs minutes.");
       const entries = CONF.run ? await CONF.run() : await importGeneric();
       count = entries.length;
       if (!count) {
+        failReason = 'empty';
         status('Aucun visionnage trouvé sur cette page. Vérifie que tu es connecté et sur la page Historique.');
         return;
       }
@@ -1195,15 +1199,17 @@
         if (final) status(final);
       }
     } catch (e) {
+      failReason = 'error';
       status('Erreur : ' + (e?.message || e));
     } finally {
       running = false;
       if (btn) btn.disabled = false;
       if (boxEl) boxEl.classList.remove('busy');
-      VH.send({ type: 'importDone', platform, count, silent }).catch(() => {});
+      VH.send({ type: 'importDone', platform, count, silent, reason: silent ? failReason : '' }).catch(() => {});
     }
   }
 
+  let loginTimer = null;
   async function check() {
     let res = {};
     try {
@@ -1211,7 +1217,11 @@
     } catch {}
     if (res.pending && res.silent) {
       silent = true;
-      if (isHistoryPage()) runImport(true);
+      if (isHistoryPage()) { clearTimeout(loginTimer); runImport(true); return; }
+      // synchro : la page d'historique a renvoyé ailleurs (connexion, choix du profil…). On prévient au bout de 20 s
+      // au lieu de laisser la synchro attendre 3 minutes pour rien.
+      clearTimeout(loginTimer);
+      loginTimer = setTimeout(() => { if (!isHistoryPage() && !running) VH.send({ type: 'importDone', platform, count: 0, silent: true, reason: 'login' }).catch(() => {}); }, 20000);
       return;
     }
     if (isHistoryPage()) {
