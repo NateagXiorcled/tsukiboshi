@@ -436,19 +436,21 @@ a.btn { text-decoration: none; display: inline-flex; align-items: center; }
 .mark-box .btn { height: 32px; font-size: 12.5px; }
 .mark-done { flex-basis: 100%; color: #7be3a8; }
 
-/* ---------- Barre du haut : jamais plus large que l'écran (6 onglets + indicateur d'affiches) ---------- */
+/* ---------- Barre du haut : même espacement qu'avant ; la recherche se réduit seulement si la place manque ---------- */
 .brand, .top .btn, .layout-btn { flex: none; }
-.top .search { flex: 0 1 360px; width: auto; min-width: 120px; }
+.top .search { flex: 0 1 360px; width: auto; min-width: 140px; }
 .art-status { flex: 0 1 auto; min-width: 0; overflow: hidden; white-space: nowrap; }
 .art-status span { overflow: hidden; text-overflow: ellipsis; }
-@media (max-width: 1500px) { .art-status span { max-width: 150px; } }
-@media (max-width: 1300px) { .art-status span { display: none; } .top { gap: 10px; } .tabs a { padding: 6px 9px; } }
-@media (max-width: 1100px) { .art-status { display: none; } .top .search { min-width: 90px; } .word, .sep { display: none; } }
-@media (max-width: 1000px) {
+.tabs a { white-space: nowrap; }
+/* écran trop étroit pour tout afficher : l'indicateur d'affiches se replie, puis les onglets défilent */
+@media (max-width: 1400px) { .art-status span { display: none; } }
+@media (max-width: 1150px) {
+  .art-status { display: none; }
   .brand { flex: 0 1 auto; min-width: 0; }
   .tabs { min-width: 0; overflow-x: auto; scrollbar-width: none; }
   .tabs::-webkit-scrollbar { display: none; }
   .tabs a { flex: none; }
-  .tonight-btn .lbl, #addBtn .lbl { display: none; }
 }
-.tabs a { white-space: nowrap; }
+/* filtres : de l'air entre les lignes quand ils passent sur deux rangées */
+.filters { row-gap: 14px; }
+.right { row-gap: 10px; }
