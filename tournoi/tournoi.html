@@ -26,6 +26,11 @@
         <h1>Le tournoi</h1>
         <p>Tes titres s'affrontent en duels. À toi de choisir ton préféré à chaque fois, jusqu'au champion.</p>
       </div>
+      <div class="resume" id="resume" hidden>
+        <div class="resume-txt"><b id="resumeText"></b><small id="resumeNote" hidden>Reprends ou abandonne ce tournoi avant d'en commencer un autre.</small><div class="progress" aria-hidden="true"><i id="resumeBar"></i></div></div>
+        <button class="btn primary" id="resumeGo">Reprendre</button>
+        <button class="btn secondary" id="resumeDrop">Abandonner</button>
+      </div>
       <div class="periods" id="periods" role="list"></div>
       <div class="palmares" id="palmares" hidden>
         <h2 class="row-title">Palmarès</h2>
@@ -36,7 +41,7 @@
     <!-- Duel -->
     <section id="duel" hidden>
       <div class="duel-head">
-        <button class="btn secondary small-btn" id="quit">← Quitter</button>
+        <button class="btn secondary small-btn" id="quit" title="Le tournoi est gardé : tu pourras le reprendre">← Plus tard</button>
         <div><div class="round" id="round"></div><div class="match" id="match"></div></div>
         <div class="progress" aria-hidden="true"><i id="bar"></i></div>
       </div>

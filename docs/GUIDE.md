@@ -88,6 +88,7 @@ Onglet **Tournoi** : **tous** tes titres de la semaine, du mois ou de l'année s
 - Le champion : couronne, parcours (« a battu… »), **Télécharger l'image** (carte 1080 × 1350 à partager) et **Lui mettre 5 ★**.
 - **Tier list** à la fin de chaque tournoi : S (champion), A (finaliste), B (demi-finales), C (quarts), D (huitièmes), avec **Télécharger la tier list** (image à partager).
 - **Méga-tournoi** : dès 4 champions du mois dans l'année, les champions de chaque mois s'affrontent (les mieux placés passent le premier tour si le tableau n'est pas complet), avec la tier list de l'année.
+- **Reprise** : un tournoi commencé est enregistré après chaque duel. « Plus tard » (ou fermer la page) ne fait rien perdre : l'accueil du tournoi propose **Reprendre** ou **Abandonner**.
 - Le **palmarès** garde **chaque tournoi** : clique sur un champion pour revoir tout le tableau avec tes choix, la tier list, et retélécharger les images. Le champion de l'année apparaît aussi dans le Bilan.
 
 ### Nouvelle version disponible
@@ -144,7 +145,7 @@ Les doublons (même épisode vu en direct puis retrouvé dans l'historique) sont
 
 ## Nouveautés 5.15
 - **Tri par note** dans les deux sens.
-- **Tournois** : tous les titres de la période participent ; chaque tournoi est gardé et se revoit depuis le palmarès (tableau, choix, tier list).
+- **Tournois** : tous les titres de la période participent ; chaque tournoi est gardé et se revoit depuis le palmarès (tableau, choix, tier list) ; un tournoi commencé se reprend plus tard.
 - **Saisons** : la fiche d'un animé s'ouvre sur place, plus de bascule vers Rechercher.
 
 ## Nouveautés 5.14 (vérification complète)

@@ -10,6 +10,7 @@ const fmtH = (s) => (s >= 3600 ? `${(Math.round(s / 360) / 10).toLocaleString('f
 const MONTHS = ['janv.', 'févr.', 'mars', 'avr.', 'mai', 'juin', 'juil.', 'août', 'sept.', 'oct.', 'nov.', 'déc.'];
 
 let data = { entries: [], art: {}, meta: {}, shows: {}, tournaments: [] };
+let draft = null; // tournoi commencé et pas fini (enregistré après chaque duel, pour le reprendre plus tard)
 function posterOf(key) {
   return safeUrl((data.shows[key] && data.shows[key].poster) || (data.meta[key] && data.meta[key].poster) || (data.art[key] && data.art[key].poster) || '');
 }
@@ -23,7 +24,8 @@ function visual(p) {
 const facts = (p) => [p.movie ? 'Film' : `${p.eps} ép.`, fmtH(p.secs), PLATFORMS[p.platform]].filter(Boolean).join(' · ');
 
 async function load() {
-  const r = await chrome.storage.local.get(['entries', 'art', 'meta', 'shows', 'tournaments']);
+  const r = await chrome.storage.local.get(['entries', 'art', 'meta', 'shows', 'tournaments', 'tourneyDraft']);
+  draft = r.tourneyDraft || null;
   data = { entries: Object.values(r.entries || {}), art: r.art || {}, meta: r.meta || {}, shows: r.shows || {}, tournaments: r.tournaments || [] };
 }
 
@@ -41,6 +43,12 @@ function renderHome() {
       <span class="go">${n ? `Tournoi à ${n} · ${n - 1} duel${n > 2 ? 's' : ''} →` : 'Pas assez de titres (2 minimum)'}</span>
     </button>`;
   }).join('') + megaCard();
+  $('resume').hidden = !draft;
+  $('resumeNote').hidden = true;
+  if (draft) {
+    $('resumeText').textContent = `Tournoi ${draft.label} en cours : ${draft.done} duel${draft.done > 1 ? 's' : ''} sur ${draft.total} joué${draft.done > 1 ? 's' : ''}`;
+    $('resumeBar').style.width = `${(draft.done / Math.max(1, draft.total)) * 100}%`;
+  }
   const champs = data.tournaments.slice().reverse();
   $('palmares').hidden = !champs.length;
   $('champs').innerHTML = champs.map((t, i) => `<button class="champ-mini" data-t="${champs.length - 1 - i}" title="Revoir ce tournoi : duels et tier list">
@@ -102,6 +110,23 @@ function start(period) {
   T = { period, label, id, rounds: [pairs.map(([a, b]) => ({ a, b, w: null }))], r: 0, m: 0, total: n - 1, done: 0 };
   show('duel');
   renderDuel();
+  saveDraft();
+}
+// tournoi en cours : gardé après chaque duel (fermer la page ou quitter ne fait rien perdre)
+function saveDraft() {
+  if (!T || T.saved) return;
+  draft = { period: T.period, label: T.label, id: T.id, total: T.total, done: T.done, r: T.r, m: T.m, saved: packRounds(T.rounds), at: Date.now() };
+  chrome.storage.local.set({ tourneyDraft: draft }).catch(() => {});
+}
+function clearDraft() { draft = null; chrome.storage.local.remove('tourneyDraft').catch(() => {}); }
+function resumeDraft() {
+  if (!draft) return;
+  const rounds = unpackRounds(draft.saved);
+  if (!rounds.length) return clearDraft();
+  T = { period: draft.period, label: draft.label, id: draft.id, rounds, r: Math.min(draft.r, rounds.length - 1), m: draft.m, total: draft.total, done: draft.done };
+  if (!T.rounds[T.r][T.m]) T.m = 0;
+  show('duel');
+  renderDuel();
 }
 // exempt (méga-tournoi incomplet) : le titre seul passe directement au tour suivant
 function skipByes() {
@@ -147,10 +172,11 @@ function pick(side) {
   setTimeout(() => {
     busy = false;
     const round = T.rounds[T.r];
-    if (T.m + 1 < round.length) { T.m++; return renderDuel(); }
+    if (T.m + 1 < round.length) { T.m++; renderDuel(); return saveDraft(); }
     if (round.length === 1) return finish();
     nextRound();
     renderDuel();
+    saveDraft();
   }, 450);
 }
 function renderBracket(el) {
@@ -173,7 +199,7 @@ document.addEventListener('keydown', (e) => {
   if (e.key === 'ArrowLeft') { e.preventDefault(); pick('a'); }
   if (e.key === 'ArrowRight') { e.preventDefault(); pick('b'); }
 });
-$('quit').onclick = () => { if (confirm('Quitter le tournoi en cours ?')) { T = null; renderHome(); } };
+$('quit').onclick = () => { saveDraft(); T = null; renderHome(); }; // rien n'est perdu : « Reprendre » sur l'accueil
 
 // ---------- champion ----------
 function beaten(champ) {
@@ -204,6 +230,7 @@ async function finish() {
   if (T.saved) { $('playedOn').textContent = `Tournoi joué le ${new Date(T.saved).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}`; show('champion'); return; }
   // palmarès : chaque tournoi est gardé (duels, choix et tier list), pour le revoir quand on veut
   const now = new Date();
+  clearDraft();
   const entry = { id: `${T.period}:${T.id}:${Date.now().toString(36)}`, period: T.period, saved: packRounds(T.rounds), label: T.period === 'week' ? `de la semaine du ${weekStart(now)}` : T.label,
     tiers: T.tiers.map((t) => ({ tier: t.tier, items: t.items.map((p) => ({ key: p.key, title: p.title, platform: p.platform })) })), champion: { key: champ.key, title: champ.title, platform: champ.platform }, finalist: (T.rounds[T.rounds.length - 1][0].a === champ ? T.rounds[T.rounds.length - 1][0].b : T.rounds[T.rounds.length - 1][0].a).title, size: T.rounds[0].length * 2, at: Date.now() };
   data.tournaments = data.tournaments.concat(entry).slice(-200);
@@ -405,7 +432,28 @@ $('share').onclick = async (e) => {
   setTimeout(() => { b.textContent = 'Télécharger l\'image'; b.disabled = false; }, 3500);
 };
 
-$('periods').addEventListener('click', (e) => { const p = e.target.closest('[data-period]'); if (p && !p.disabled) start(p.dataset.period); });
+$('periods').addEventListener('click', (e) => {
+  const p = e.target.closest('[data-period]');
+  if (!p || p.disabled) return;
+  if (draft) {
+    // un seul tournoi en cours à la fois : on le montre, à l'utilisateur de le reprendre ou de l'abandonner
+    $('resumeNote').hidden = false;
+    $('resume').scrollIntoView({ block: 'center', behavior: 'smooth' });
+    $('resume').classList.remove('flash'); void $('resume').offsetWidth; $('resume').classList.add('flash');
+    return;
+  }
+  start(p.dataset.period);
+});
+$('resumeGo').onclick = resumeDraft;
+// abandon en deux clics (sans fenêtre de confirmation)
+let dropArmed = 0;
+$('resumeDrop').onclick = (e) => {
+  const b = e.currentTarget;
+  if (Date.now() - dropArmed < 5000) { dropArmed = 0; b.textContent = 'Abandonner'; clearDraft(); renderHome(); return; }
+  dropArmed = Date.now();
+  b.textContent = 'Confirmer l\'abandon';
+  setTimeout(() => { if (dropArmed && Date.now() - dropArmed >= 5000) { dropArmed = 0; b.textContent = 'Abandonner'; } }, 5200);
+};
 
 await load();
 renderHome();
