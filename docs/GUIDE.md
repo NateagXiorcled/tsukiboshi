@@ -1,4 +1,4 @@
-# Guide complet — tsukiboshi 月星 (v5.15)
+# Guide complet — tsukiboshi 月星 (v5.16)
 
 Plateformes : Netflix, Crunchyroll, ADN, Disney+, Prime Video.
 Fonctionne avec n'importe quel compte : l'extension utilise le compte connecté dans Chrome.
@@ -142,6 +142,11 @@ Onglet **Bilan** en haut de Ma liste : par année ou depuis le début.
 - **Résumé** : totaux par plateforme.
 
 Les doublons (même épisode vu en direct puis retrouvé dans l'historique) sont fusionnés automatiquement.
+
+## Nouveautés 5.16
+- **Statut « Vu » à tort corrigé** : une série encore en diffusion dont tu as vu tous les épisodes déjà sortis reste « En cours · À jour » (Crunchyroll ne compte que les épisodes sortis, ce qui faisait croire à une série finie).
+- **Calendrier** : les séries Crunchyroll absentes d'AniList (ex. Dreamland) ont leurs prochains épisodes estimés, même si la dernière synchro date de plusieurs semaines.
+- **Saisons** : AniList ne connaît pas tous les animés diffusés en France. Tes séries suivies qui sortent en ce moment et qui manquent à sa liste apparaissent en haut, dans « Tes séries en cours ».
 
 ## Nouveautés 5.15
 - **Tri par note** dans les deux sens.
