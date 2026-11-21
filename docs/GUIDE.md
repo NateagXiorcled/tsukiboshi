@@ -144,7 +144,8 @@ Onglet **Bilan** en haut de Ma liste : par année ou depuis le début.
 Les doublons (même épisode vu en direct puis retrouvé dans l'historique) sont fusionnés automatiquement.
 
 ## Nouveautés 5.16
-- **🎌 Mode otaku** (réglages du popup) : l'application ne montre plus que les animés, partout : Ma liste, Calendrier, Tournoi, Bilan et chiffres du popup. Un animé = Crunchyroll, ADN, ou un titre d'une autre plateforme reconnu comme « Animé ». Les séries et films restent enregistrés (et dans l'Excel) : décoche le mode, ou clique sur le badge « 🎌 Mode otaku » en haut des pages, pour tout retrouver.
+- **🎌 Mode otaku** (réglages du popup, ou la coche en haut à droite de Ma liste : les deux sont reliées) : l'application ne montre plus que les animés, partout : Ma liste, Calendrier, Tournoi, Bilan et chiffres du popup. Un animé = Crunchyroll, ADN, ou un titre d'une autre plateforme reconnu comme « Animé ». Les séries et films restent enregistrés (et dans l'Excel) : décoche le mode, ou clique sur le badge « 🎌 Mode otaku » en haut des pages, pour tout retrouver.
+- **Une seule fiche par animé** dans Ma liste : les saisons (« Black Clover » + « Black Clover Season 2 », ou des saisons au titre différent reconnues par AniList) et le même animé vu sur plusieurs plateformes (Crunchyroll + ADN) sont réunis. Note, statut, avis et favori s'appliquent à toutes les fiches réunies.
 
 ## Nouveautés 5.15
 - **Tri par note** dans les deux sens.

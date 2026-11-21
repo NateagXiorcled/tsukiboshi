@@ -7,6 +7,7 @@ import { platformOfLink } from '../lib/anilist.js';
 import { installNetflixLinks } from '../lib/nflink.js';
 import { initLayout, isHorizontal } from '../lib/layout.js';
 import { otakuMode, watchOtaku, otakuBadge } from '../lib/otaku.js';
+import { franchiseGroups } from '../lib/franchise.js';
 const OTAKU = await otakuMode(); // mode otaku : animés seulement
 // tsukiboshi — page « Ma liste »
 const PLATFORMS = { netflix: 'Netflix', crunchyroll: 'Crunchyroll', adn: 'ADN', disney: 'Disney+', prime: 'Prime Video' };
@@ -32,13 +33,14 @@ let sel = null; // sélection multiple : Set des titres choisis quand le mode es
 const view = { status: 'all', platform: 'all', kind: 'all', q: '', sort: 'recent', genre: '', decade: '' };
 // type de titre : animé, série ou film (sous-onglets)
 const kindOf = (s) => (s.isMovie ? 'movie' : isAnime(s) ? 'anime' : 'series');
-const inScope = (s) => (view.platform === 'all' || s.platform === view.platform) && (view.kind === 'all' || kindOf(s) === view.kind);
+const inScope = (s) => (view.platform === 'all' || (s.platforms || [s.platform]).includes(view.platform)) && (view.kind === 'all' || kindOf(s) === view.kind);
 let openKey = null;
 
 // ---------- Données ----------
 async function load() {
-  const r = await chrome.storage.local.get(['entries', 'shows', 'wishlist', 'meta', 'art', 'newEps', 'genres', 'suites']);
-  data = { entries: r.entries || {}, shows: r.shows || {}, wishlist: r.wishlist || {}, meta: r.meta || {}, art: r.art || {}, newEps: r.newEps || {}, genres: r.genres || {}, suites: (r.suites && r.suites.list) || [] };
+  const r = await chrome.storage.local.get(['entries', 'shows', 'wishlist', 'meta', 'art', 'newEps', 'genres', 'suites', 'aniIds', 'aniMedia']);
+  // rawShows = choix manuels tels qu'enregistrés (un par titre) ; shows = vue regroupée (un par animé, voir buildShows)
+  data = { entries: r.entries || {}, rawShows: r.shows || {}, shows: { ...(r.shows || {}) }, wishlist: r.wishlist || {}, meta: r.meta || {}, art: r.art || {}, newEps: { ...(r.newEps || {}) }, genres: r.genres || {}, suites: (r.suites && r.suites.list) || [], aniIds: r.aniIds || {}, aniMedia: r.aniMedia || {} };
   shows = buildShows();
   if (OTAKU) shows = shows.filter((s) => isAnime(s)); // films d'animation compris
   render();
@@ -56,68 +58,93 @@ function buildShows() {
     if (!map.has(w.key)) map.set(w.key, { key: w.key, title: w.title, platform: w.platform, items: [], added: w.added });
     else map.get(w.key).added = w.added;
   }
-  return [...map.values()].map((s) => {
+  // une seule fiche par animé : ses saisons et ses plateformes sont réunies
+  const lastOf = (x) => Math.max(0, ...x.items.map((e) => e.date || 0));
+  return franchiseGroups([...map.values()], data.aniIds, data.aniMedia).map((members) => {
+    const watched = members.filter((m) => m.items.length);
+    const pool = watched.length ? watched : members;
+    const primary = pool.slice().sort((a, b) => lastOf(b) - lastOf(a))[0];
+    const s = {
+      key: primary.key,
+      keys: members.map((m) => m.key),
+      title: pool.map((m) => m.title).sort((a, b) => a.length - b.length)[0], // « Black Clover » plutôt que « Black Clover Season 2 »
+      platform: primary.platform,
+      platforms: [...new Set([primary.platform, ...pool.map((m) => m.platform)])],
+      items: members.flatMap((m) => m.items),
+      added: Math.min(...members.map((m) => m.added || Infinity)) || undefined,
+    };
+    if (!Number.isFinite(s.added)) delete s.added;
+    // choix manuels de toutes les fiches réunies (le plus récent l'emporte), nouveaux épisodes, liste
+    const recs = members.map((m) => data.rawShows[m.key]).filter(Boolean).sort((a, b) => (a.updated || 0) - (b.updated || 0));
+    if (recs.length) data.shows[s.key] = Object.assign({}, ...recs); else delete data.shows[s.key];
+    const nw = members.map((m) => data.newEps[m.key]).filter(Boolean).sort((a, b) => b.at - a.at)[0];
+    if (nw) data.newEps[s.key] = nw;
+    s.inWish = members.some((m) => data.wishlist[m.key]);
     s.items.sort((a, b) => (b.date ?? 0) - (a.date ?? 0));
     const dated = s.items.filter((e) => e.date);
     s.last = dated.length ? dated[0].date : null;
     s.first = dated.length ? dated[dated.length - 1].date : null;
     s.lastItem = s.items[0] || null;
-    s.episodes = new Set(s.items.map((e) => norm(e.episode))).size;
+    // une saison = son propre titre : « S1 E1 » de la saison 2 n'est pas celui de la saison 1 (même titre sur 2 plateformes = même épisode)
+    s.episodes = new Set(s.items.map((e) => norm(e.title) + '|' + norm(e.episode))).size;
     s.secs = s.items.reduce((t, e) => t + (e.seconds || 0), 0);
     s.image = (s.items.find((e) => e.image) || {}).image || '';
     // ADN ne donne que la série (jamais l'épisode) : ce n'est pas un film
-    s.isMovie = s.platform !== 'adn' && s.items.length > 0 && s.items.every((e) => !e.episode);
-    s.meta = data.meta[s.key] || null;
-    s.art = data.art[s.key] || null;
+    s.isMovie = !s.platforms.includes('adn') && s.items.length > 0 && s.items.every((e) => !e.episode);
+    const metaOf = data.meta[s.key] ? primary : members.find((m) => data.meta[m.key]);
+    s.meta = metaOf ? data.meta[metaOf.key] : null;
+    s.art = (data.art[s.key] && data.art[s.key].poster ? data.art[s.key] : members.map((m) => data.art[m.key]).find((a) => a && a.poster)) || data.art[s.key] || null;
     s.custom = (data.shows[s.key] && data.shows[s.key].poster) || '';
     // image : choisie à la main > affiche Crunchyroll > affiche trouvée (AniList / TVmaze / iTunes)
     s.poster = s.custom || (s.meta && s.meta.poster) || (s.art && s.art.poster) || '';
     s.wide = (s.meta && s.meta.wide) || (s.art && s.art.wide) || '';
-    s.prog = s.meta && !s.isMovie ? seriesProgress(s.items, s.meta) : null;
+    // progression : la saison dont viennent les infos Crunchyroll (la dernière regardée en priorité)
+    s.prog = s.meta && !s.isMovie ? seriesProgress(metaOf.items, s.meta) : null;
     s.auto = !s.items.length ? 'list' : s.isMovie || (s.prog && s.prog.complete) ? 'done' : 'progress';
     s.status = (data.shows[s.key] && data.shows[s.key].status) || s.auto;
-    s.genres = (data.genres[s.key] && data.genres[s.key].genres) || [];
-    s.year = (data.genres[s.key] && data.genres[s.key].year) || null;
+    const gen = members.map((m) => data.genres[m.key]).filter(Boolean);
+    s.genres = [...new Set(gen.flatMap((g) => g.genres || []))];
+    s.year = Math.min(...gen.map((g) => g.year || Infinity));
+    if (!Number.isFinite(s.year)) s.year = null;
     s.rating = (data.shows[s.key] && data.shows[s.key].rating) || 0;
     s.fav = !!(data.shows[s.key] && data.shows[s.key].fav);
     s.review = (data.shows[s.key] && data.shows[s.key].review) || '';
     return s;
   });
 }
+// toutes les fiches réunies sous une même carte (un choix s'applique à toutes)
+const membersOf = (key) => (shows.find((x) => x.key === key || (x.keys && x.keys.includes(key))) || { keys: [key] }).keys || [key];
 
 // plusieurs titres d'un coup (sélection multiple) : une seule écriture
 async function setStatusMany(keys, status) {
-  const next = { ...data.shows };
+  const next = { ...data.rawShows };
   for (const key of keys) {
     const s = shows.find((x) => x.key === key);
-    const cur = { ...(next[key] || {}) };
-    if (!status || (s && status === s.auto)) delete cur.status;
-    else cur.status = status;
-    if (Object.keys(cur).some((k) => k !== 'updated')) next[key] = { ...cur, updated: Date.now() };
-    else delete next[key];
+    for (const k of membersOf(key)) {
+      const cur = { ...(next[k] || {}) };
+      if (!status || (s && status === s.auto)) delete cur.status;
+      else cur.status = status;
+      if (Object.keys(cur).some((f) => f !== 'updated')) next[k] = { ...cur, updated: Date.now() };
+      else delete next[k];
+    }
   }
+  data.rawShows = next;
   await chrome.storage.local.set({ shows: next });
 }
-async function setStatus(key, status) {
-  const s = shows.find((x) => x.key === key);
-  const next = { ...data.shows };
-  const cur = { ...(next[key] || {}) };
-  if (!status || (s && status === s.auto)) delete cur.status;
-  else cur.status = status;
-  if (Object.keys(cur).some((k) => k !== 'updated')) next[key] = { ...cur, updated: Date.now() };
-  else delete next[key];
-  await chrome.storage.local.set({ shows: next });
-}
+const setStatus = (key, status) => setStatusMany([key], status);
 
 // note (1 à 5), favori, avis : enregistrés avec les autres choix manuels
 async function patchShow(key, patch) {
-  const next = { ...data.shows };
-  const cur = { ...(next[key] || {}), ...patch };
-  for (const k of Object.keys(patch)) if (cur[k] == null || cur[k] === '' || cur[k] === 0 || cur[k] === false) delete cur[k];
-  delete cur.updated;
-  if (Object.keys(cur).length) next[key] = { ...cur, updated: Date.now() };
-  else delete next[key];
-  data.shows = next;
+  const next = { ...data.rawShows };
+  for (const k of membersOf(key)) {
+    const cur = { ...(next[k] || {}), ...patch };
+    for (const f of Object.keys(patch)) if (cur[f] == null || cur[f] === '' || cur[f] === 0 || cur[f] === false) delete cur[f];
+    delete cur.updated;
+    if (Object.keys(cur).length) next[k] = { ...cur, updated: Date.now() };
+    else delete next[k];
+  }
+  data.rawShows = next;
+  data.shows = { ...data.shows, [key]: { ...(data.shows[key] || {}), ...patch } };
   await chrome.storage.local.set({ shows: next });
 }
 const STAR = '<svg viewBox="0 0 24 24"><path d="M12 3.5l2.6 5.5 6 .8-4.4 4.1 1.1 5.9L12 17l-5.3 2.8 1.1-5.9L3.4 9.8l6-.8z"/></svg>';
@@ -239,12 +266,12 @@ $('decade').onchange = (e) => { view.decade = e.target.value; render(); };
 
 function renderChips() {
   renderSelects();
-  const byPlat = shows.filter((s) => view.platform === 'all' || s.platform === view.platform);
+  const byPlat = shows.filter((s) => view.platform === 'all' || (s.platforms || [s.platform]).includes(view.platform));
   const kinds = [['all', 'Tout'], ['anime', 'Animés'], ['series', 'Séries'], ['movie', 'Films']].map(([id, label]) => [id, label, id === 'all' ? byPlat.length : byPlat.filter((s) => kindOf(s) === id).length]);
-  $('kindTabs').innerHTML = OTAKU
+  $('kindTabs').innerHTML = otakuSwitch() + (OTAKU
     ? `<span class="kind on" role="tab" aria-selected="true">Animés<span class="n">${fmtN(byPlat.length)}</span></span>`
     : kinds.filter(([id, , n]) => id === 'all' || n || view.kind === id).map(([id, label, n]) =>
-    `<button class="kind ${view.kind === id ? 'on' : ''}" data-kind="${id}" role="tab" aria-selected="${view.kind === id}">${label}<span class="n">${fmtN(n)}</span></button>`).join('');
+    `<button class="kind ${view.kind === id ? 'on' : ''}" data-kind="${id}" role="tab" aria-selected="${view.kind === id}">${label}<span class="n">${fmtN(n)}</span></button>`).join(''));
   const base = shows.filter(inScope);
   const n = (st) => base.filter((s) => s.status === st).length;
   const items = [['all', 'Tout', base.length], ['progress', 'En cours', n('progress')], ['done', 'Vu', n('done')], ['list', 'Ajouté à la liste', n('list')]];
@@ -255,7 +282,7 @@ function renderChips() {
   $('statusChips').innerHTML = items.map(([id, label, count]) =>
     `<button class="chip ${view.status === id ? 'on' : ''}" data-status="${id}">${id === 'fav' ? `<span class="heart">${HEART}</span>` : id !== 'all' ? `<span class="dot" style="background:${STATUS[id].color}"></span>` : ''}${label}<span class="n">${fmtN(count)}</span></button>`).join('');
 
-  const present = Object.keys(PLATFORMS).filter((p) => shows.some((s) => s.platform === p));
+  const present = Object.keys(PLATFORMS).filter((p) => shows.some((s) => (s.platforms || [s.platform]).includes(p)));
   $('platformChips').innerHTML = present.length > 1
     ? [`<button class="chip ${view.platform === 'all' ? 'on' : ''}" data-platform="all">Toutes</button>`,
        ...present.map((p) => `<button class="chip ${view.platform === p ? 'on' : ''}" data-platform="${p}"><span class="dot" style="background:${COLORS[p]}"></span>${PLATFORMS[p]}</button>`)].join('')
@@ -278,7 +305,7 @@ function card(s) {
   return `<article class="card${sel && sel.has(s.key) ? ' picked' : ''}" tabindex="0" data-key="${esc(s.key)}"${sel ? ` aria-pressed="${sel.has(s.key)}"` : ''}>
     <div class="thumb${isHorizontal() ? ' wide' : ''}">${isHorizontal() ? wideVisual(s) : visual(s)}<span class="badge" style="--s:${st.color}">${st.label}</span>${s.fav ? `<span class="fav-mark" title="Favori">${HEART}</span>` : ''}${bar}</div>
     <div class="meta">
-      <div class="c-platform"><span class="dot" style="background:${COLORS[s.platform]}"></span>${PLATFORMS[s.platform]}${count}</div>
+      <div class="c-platform">${(s.platforms || [s.platform]).map((p) => `<span class="dot" style="background:${COLORS[p]}"></span>`).join('')}${(s.platforms || [s.platform]).map((p) => PLATFORMS[p]).join(' + ')}${count}</div>
       <div class="c-title">${esc(s.title)}</div>
       ${s.rating ? `<div class="c-stars" aria-label="Ma note : ${s.rating} sur 5">${[1, 2, 3, 4, 5].map((n) => `<i class="${n <= s.rating ? 'on' : ''}">${STAR}</i>`).join('')}</div>` : ''}
       <div class="c-where">${esc(where)}</div>
@@ -402,7 +429,8 @@ $('rail').onclick = async (e) => {
   if (!tile) return;
   if (e.target.closest('[data-hide]')) {
     const s = shows.find((x) => x.key === tile.dataset.key);
-    const next = { ...data.shows, [tile.dataset.key]: { ...(data.shows[tile.dataset.key] || {}), hideNext: s ? s.last : Date.now(), updated: Date.now() } };
+    const next = { ...data.rawShows };
+    for (const k of membersOf(tile.dataset.key)) next[k] = { ...(next[k] || {}), hideNext: s ? s.last : Date.now(), updated: Date.now() };
     tile.remove();
     if (!$('rail').children.length) $('upnext').hidden = true;
     await chrome.storage.local.set({ shows: next });
@@ -622,11 +650,12 @@ $('restoreModal').onclick = (e) => { if (e.target === $('restoreModal')) $('rest
 
 // ---------- Fiche ----------
 function openShow(key, refresh) {
-  const s = shows.find((x) => x.key === key);
+  const s = shows.find((x) => x.key === key) || shows.find((x) => x.keys && x.keys.includes(key));
+  if (s) key = s.key;
   if (!s) return closeShow();
   openKey = key;
   $('dHero').innerHTML = heroVisual(s);
-  $('dPlatform').innerHTML = `<span class="dot" style="background:${COLORS[s.platform]}"></span>${PLATFORMS[s.platform]}`;
+  $('dPlatform').innerHTML = (s.platforms || [s.platform]).map((p) => `<span class="dot" style="background:${COLORS[p]}"></span>${PLATFORMS[p]}`).join(' · ') + (s.keys && s.keys.length > 1 ? ` <span class="d-merged" title="${esc(s.keys.length + ' fiches réunies')}">· ${s.keys.length} fiches réunies</span>` : '');
   $('dTitle').textContent = s.title;
   $('dGenres').innerHTML = [s.year ? `<span class="g-year">${s.year}</span>` : '', ...s.genres.map((g) => `<button class="g-chip" data-genre="${esc(g)}" title="Voir tous les titres « ${esc(g)} »">${esc(g)}</button>`)].join('');
   const srcNote = s.custom ? 'Image choisie à la main' : s.meta && s.meta.poster ? 'Affiche Crunchyroll' : s.art && s.art.poster ? `Affiche ${s.art.source}${s.art.match && s.art.match !== s.title ? ` (« ${s.art.match} »)` : ''}` : '';
@@ -672,7 +701,7 @@ function openShow(key, refresh) {
   if (li && safeUrl(li.url)) actions.push(`<a class="btn primary" href="${esc(safeUrl(li.url))}" target="_blank" rel="noopener">${s.isMovie ? 'Ouvrir le film' : 'Ouvrir le dernier épisode'}</a>`);
   actions.push(`<button class="btn secondary" data-art>Changer l'image</button>`);
   if (s.meta && s.meta.seriesId) actions.push(`<a class="btn secondary" href="https://www.crunchyroll.com/fr/series/${esc(s.meta.seriesId)}" target="_blank" rel="noopener">Voir la série</a>`);
-  if (data.wishlist[key]) actions.push(`<button class="btn secondary" data-remove>Retirer de ma liste</button>`);
+  if (s.inWish) actions.push(`<button class="btn secondary" data-remove>Retirer de ma liste</button>`);
   const desc = s.meta && s.meta.description;
   $('dDesc').hidden = !desc;
   $('dDesc').textContent = desc || '';
@@ -845,6 +874,15 @@ $('platformChips').onclick = (e) => {
   if (b) { view.platform = b.dataset.platform; render(); }
 };
 $('sort').onchange = (e) => { view.sort = e.target.value; render(); };
+// coche « Mode otaku » : même réglage que dans le popup (la page se recharge, le popup suit)
+function otakuSwitch() {
+  return `<label class="otaku-switch" title="Seulement les animés dans toute l'application"><input type="checkbox" id="otakuToggle" ${OTAKU ? 'checked' : ''}><i></i>🎌 Mode otaku</label>`;
+}
+$('kindTabs').addEventListener('change', (e) => {
+  if (e.target.id !== 'otakuToggle') return;
+  e.target.disabled = true;
+  chrome.runtime.sendMessage({ type: 'setSettings', settings: { otaku: e.target.checked } }).catch(() => {});
+});
 $('kindTabs').onclick = (e) => { const b = e.target.closest('[data-kind]'); if (b) { view.kind = b.dataset.kind; view.genre = ''; render(); } };
 $('q').oninput = (e) => { view.q = e.target.value; render(); };
 $('grid').onclick = (e) => {
@@ -955,9 +993,9 @@ $('drawer').onclick = async (e) => {
   if (e.target.closest('[data-reset]')) return setStatus(openKey, null);
   if (e.target.closest('[data-remove]')) {
     const wishlist = { ...data.wishlist };
-    delete wishlist[openKey];
-    const showsMap = { ...data.shows };
-    if (!shows.find((s) => s.key === openKey)?.items.length) delete showsMap[openKey];
+    const showsMap = { ...data.rawShows };
+    const empty = !shows.find((s) => s.key === openKey)?.items.length;
+    for (const k of membersOf(openKey)) { delete wishlist[k]; if (empty) delete showsMap[k]; }
     await chrome.storage.local.set({ wishlist, shows: showsMap });
   }
 };

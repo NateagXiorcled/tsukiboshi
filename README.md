@@ -25,7 +25,8 @@ Extension pour **Chrome, Edge, Opera, Brave et Vivaldi** qui récupère tout ton
 - **Bilan** : heures regardées, calendrier de tes soirées, top 10, genres préférés, records.
 - **Notes, favoris et avis** sur chaque titre, et un statut *Abandonné* pour ce que tu as laissé tomber.
 - **Sauvegarde / restauration** pour changer de PC sans rien perdre.
-- **Mode otaku** : une coche pour ne voir que les animés dans toute l'application.
+- **Mode otaku** : une coche (popup ou Ma liste) pour ne voir que les animés dans toute l'application.
+- **Une fiche par animé** : saisons et plateformes réunies dans Ma liste.
 - **Affichage vertical ou horizontal** : affiches en hauteur et jours en colonnes, ou images larges et jours en lignes, pour toute l'app.
 - **Mise à jour signalée** : un bandeau prévient quand une nouvelle version est disponible ici.
 

@@ -457,3 +457,15 @@ a.btn { text-decoration: none; display: inline-flex; align-items: center; }
 .otaku-badge { flex: none; height: 30px; padding: 0 10px; margin-left: 6px; border-radius: 99px; border: 1px solid rgba(244, 117, 33, .55); background: rgba(244, 117, 33, .12); color: #ffb37a; font: 600 12px 'Inter', sans-serif; cursor: pointer; white-space: nowrap; }
 .otaku-badge:hover { background: rgba(244, 117, 33, .22); color: #fff; }
 @media (max-width: 720px) { .otaku-badge { font-size: 0; width: 30px; padding: 0; } .otaku-badge::before { content: '🎌'; font-size: 14px; } }
+
+/* coche « Mode otaku » à droite des sous-onglets */
+.kinds { align-items: center; }
+.otaku-switch { order: 99; margin-left: auto; display: inline-flex; align-items: center; gap: 8px; flex: none; padding: 6px 4px 10px; color: var(--muted); font-weight: 600; font-size: 13px; cursor: pointer; white-space: nowrap; }
+.otaku-switch input { position: absolute; opacity: 0; pointer-events: none; }
+.otaku-switch i { position: relative; width: 34px; height: 20px; border-radius: 99px; background: var(--line); transition: background .15s; }
+.otaku-switch i::after { content: ''; position: absolute; top: 3px; left: 3px; width: 14px; height: 14px; border-radius: 50%; background: #fff; transition: transform .15s; }
+.otaku-switch input:checked + i { background: #f47521; }
+.otaku-switch input:checked + i::after { transform: translateX(14px); }
+.otaku-switch input:checked ~ * , .otaku-switch:has(input:checked) { color: #ffb37a; }
+.otaku-switch input:focus-visible + i { outline: 2px solid var(--accent); outline-offset: 2px; }
+.d-merged { color: var(--muted); font-weight: 500; text-transform: none; letter-spacing: 0; }
