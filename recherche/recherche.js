@@ -1,3 +1,4 @@
+import { otakuMode, watchOtaku, otakuBadge } from '../lib/otaku.js';
 // tsukiboshi — « Rechercher un animé » : fiche, où le regarder, déjà vu ou non, ajout à ma liste (données AniList)
 import { frenchGenres } from '../lib/artwork.js';
 import { platformOfLink } from '../lib/anilist.js';
@@ -229,3 +230,5 @@ const h = decodeURIComponent(location.hash.slice(1));
 const byId = h.match(/^id:(\d+)/);
 if (byId) { if (!EMBED) trending(); openById(+byId[1]); }
 else if (h) { $('q').value = h; search(h); } else trending();
+
+otakuMode().then((on) => { setTimeout(() => otakuBadge(on), 50); watchOtaku(on); });

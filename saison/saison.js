@@ -1,3 +1,4 @@
+import { otakuMode, watchOtaku, otakuBadge } from '../lib/otaku.js';
 // tsukiboshi — calendrier saisonnier : tous les animés d'une saison (AniList), avec « Je veux voir »
 import { frenchGenres } from '../lib/artwork.js';
 import { platformOfLink, seasonOf, shiftSeason } from '../lib/anilist.js';
@@ -180,3 +181,5 @@ document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeDetai
 await loadMine();
 initLayout(() => render());
 load();
+
+otakuMode().then((on) => { setTimeout(() => otakuBadge(on), 50); watchOtaku(on); });

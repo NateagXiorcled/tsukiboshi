@@ -1,4 +1,8 @@
 import { showActiveTab } from '../lib/layout.js';
+import { otakuMode, watchOtaku, otakuBadge, isAnimeEntry } from '../lib/otaku.js';
+const OTAKU = await otakuMode();
+otakuBadge(OTAKU);
+watchOtaku(OTAKU);
 // tsukiboshi — page « Bilan » : ton année (ou tout ton historique) en chiffres
 const PLATFORMS = { netflix: 'Netflix', crunchyroll: 'Crunchyroll', adn: 'ADN', disney: 'Disney+', prime: 'Prime Video' };
 const COLORS = { netflix: '#e50914', crunchyroll: '#f47521', adn: '#0099e5', disney: '#3a67ff', prime: '#00a8e1' };
@@ -37,7 +41,7 @@ function evening(e) {
 
 async function load() {
   const r = await chrome.storage.local.get(['entries', 'shows', 'meta', 'art', 'genres', 'tournaments']);
-  data = { entries: Object.values(r.entries || {}).filter((e) => e.date), shows: r.shows || {}, meta: r.meta || {}, art: r.art || {}, genres: r.genres || {}, tournaments: r.tournaments || [] };
+  data = { entries: Object.values(r.entries || {}).filter((e) => e.date && (!OTAKU || isAnimeEntry(e, r.genres))), shows: r.shows || {}, meta: r.meta || {}, art: r.art || {}, genres: r.genres || {}, tournaments: r.tournaments || [] };
   const years = [...new Set(data.entries.map((e) => new Date(e.date).getFullYear()))].sort((a, b) => b - a);
   if (period == null) period = years.includes(new Date().getFullYear()) ? new Date().getFullYear() : years[0] ?? 'all';
   $('period').innerHTML = years.map((y) => `<button role="tab" data-p="${y}" class="${period === y ? 'on' : ''}" aria-selected="${period === y}">${y}</button>`).join('')

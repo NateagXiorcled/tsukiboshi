@@ -452,3 +452,8 @@ a.btn { text-decoration: none; display: inline-flex; align-items: center; }
   .tonight-btn .lbl, #addBtn .lbl { display: none; }
 }
 .tabs a { white-space: nowrap; }
+
+/* ---------- Mode otaku ---------- */
+.otaku-badge { flex: none; height: 30px; padding: 0 10px; margin-left: 6px; border-radius: 99px; border: 1px solid rgba(244, 117, 33, .55); background: rgba(244, 117, 33, .12); color: #ffb37a; font: 600 12px 'Inter', sans-serif; cursor: pointer; white-space: nowrap; }
+.otaku-badge:hover { background: rgba(244, 117, 33, .22); color: #fff; }
+@media (max-width: 720px) { .otaku-badge { font-size: 0; width: 30px; padding: 0; } .otaku-badge::before { content: '🎌'; font-size: 14px; } }

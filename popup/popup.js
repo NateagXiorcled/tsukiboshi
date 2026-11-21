@@ -71,6 +71,7 @@ async function render() {
   $('notify').checked = s.settings.notify;
   $('lang').value = s.settings.lang || 'both';
   $('layout').value = s.settings.layout || 'vertical';
+  $('otaku').checked = !!s.settings.otaku;
   $('sync').disabled = s.syncing;
   $('sync').classList.toggle('spin', s.syncing);
   $('syncLabel').textContent = s.syncing ? (s.syncCurrent ? `${platforms[s.syncCurrent] || s.syncCurrent}…` : 'En cours') : 'Synchro';
@@ -127,6 +128,7 @@ $('autoSync').onchange = (e) => send({ type: 'setSettings', settings: { autoSync
 $('notify').onchange = (e) => send({ type: 'setSettings', settings: { notify: e.target.checked } });
 $('lang').onchange = (e) => send({ type: 'setSettings', settings: { lang: e.target.value } });
 $('layout').onchange = (e) => send({ type: 'setSettings', settings: { layout: e.target.value } });
+$('otaku').onchange = (e) => send({ type: 'setSettings', settings: { otaku: e.target.checked } }).then(render);
 $('backupBtn').onclick = async (e) => {
   const b = e.currentTarget;
   b.disabled = true;

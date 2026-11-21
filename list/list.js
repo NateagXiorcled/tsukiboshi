@@ -6,6 +6,8 @@ import { frenchGenres } from '../lib/artwork.js';
 import { platformOfLink } from '../lib/anilist.js';
 import { installNetflixLinks } from '../lib/nflink.js';
 import { initLayout, isHorizontal } from '../lib/layout.js';
+import { otakuMode, watchOtaku, otakuBadge } from '../lib/otaku.js';
+const OTAKU = await otakuMode(); // mode otaku : animés seulement
 // tsukiboshi — page « Ma liste »
 const PLATFORMS = { netflix: 'Netflix', crunchyroll: 'Crunchyroll', adn: 'ADN', disney: 'Disney+', prime: 'Prime Video' };
 const COLORS = { netflix: '#e50914', crunchyroll: '#f47521', adn: '#0099e5', disney: '#3a67ff', prime: '#00a8e1' };
@@ -38,6 +40,7 @@ async function load() {
   const r = await chrome.storage.local.get(['entries', 'shows', 'wishlist', 'meta', 'art', 'newEps', 'genres', 'suites']);
   data = { entries: r.entries || {}, shows: r.shows || {}, wishlist: r.wishlist || {}, meta: r.meta || {}, art: r.art || {}, newEps: r.newEps || {}, genres: r.genres || {}, suites: (r.suites && r.suites.list) || [] };
   shows = buildShows();
+  if (OTAKU) shows = shows.filter((s) => isAnime(s)); // films d'animation compris
   render();
   if (openKey) openShow(openKey, true);
 }
@@ -238,7 +241,9 @@ function renderChips() {
   renderSelects();
   const byPlat = shows.filter((s) => view.platform === 'all' || s.platform === view.platform);
   const kinds = [['all', 'Tout'], ['anime', 'Animés'], ['series', 'Séries'], ['movie', 'Films']].map(([id, label]) => [id, label, id === 'all' ? byPlat.length : byPlat.filter((s) => kindOf(s) === id).length]);
-  $('kindTabs').innerHTML = kinds.filter(([id, , n]) => id === 'all' || n || view.kind === id).map(([id, label, n]) =>
+  $('kindTabs').innerHTML = OTAKU
+    ? `<span class="kind on" role="tab" aria-selected="true">Animés<span class="n">${fmtN(byPlat.length)}</span></span>`
+    : kinds.filter(([id, , n]) => id === 'all' || n || view.kind === id).map(([id, label, n]) =>
     `<button class="kind ${view.kind === id ? 'on' : ''}" data-kind="${id}" role="tab" aria-selected="${view.kind === id}">${label}<span class="n">${fmtN(n)}</span></button>`).join('');
   const base = shows.filter(inScope);
   const n = (st) => base.filter((s) => s.status === st).length;
@@ -582,6 +587,7 @@ $('tonightModal').onclick = async (e) => {
     await setStatus(key, 'dropped');
     data.shows = (await chrome.storage.local.get('shows')).shows || {};
     shows = buildShows();
+    if (OTAKU) shows = shows.filter((x) => isAnime(x));
     renderTonight();
   }
 };
@@ -997,6 +1003,7 @@ chrome.storage.onChanged.addListener((changes, area) => {
   if (changes.genres && !(changes.entries || changes.shows || changes.wishlist || changes.meta || changes.art || changes.newEps)) {
     data.genres = changes.genres.newValue || {};
     shows = buildShows();
+    if (OTAKU) shows = shows.filter((x) => isAnime(x));
     if (view.genre || view.decade) render(); else renderSelects();
     if (openKey && $('drawer').classList.contains('open')) openShow(openKey, true);
     return;
@@ -1011,6 +1018,7 @@ chrome.storage.onChanged.addListener((changes, area) => {
   if (changes.art && !(changes.entries || changes.shows || changes.wishlist || changes.meta || changes.newEps)) {
     data.art = changes.art.newValue || {};
     shows = buildShows();
+    if (OTAKU) shows = shows.filter((x) => isAnime(x));
     for (const card of document.querySelectorAll('.card')) {
       const sh = shows.find((x) => x.key === card.dataset.key);
       const img = card.querySelector('.thumb img');
@@ -1060,4 +1068,5 @@ function kickArt() {
 }
 kickArt();
 installNetflixLinks();
-initLayout(() => render());
+watchOtaku(OTAKU);
+initLayout(() => render()).then(() => otakuBadge(OTAKU));

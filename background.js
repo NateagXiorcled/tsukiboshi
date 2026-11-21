@@ -64,7 +64,7 @@ let entriesCache = null;
 const getEntries = async () => entriesCache || (entriesCache = await getLocal('entries', {}));
 chrome.storage.onChanged.addListener((c, area) => { if (area === 'local' && c.entries) entriesCache = c.entries.newValue || {}; });
 async function getSettings() {
-  return { autoExport: true, autoSync: false, notify: true, lang: 'both', layout: 'vertical', ...(await getLocal('settings', {})) };
+  return { autoExport: true, autoSync: false, notify: true, lang: 'both', layout: 'vertical', otaku: false, ...(await getLocal('settings', {})) };
 }
 
 const norm = (s) =>
@@ -933,7 +933,9 @@ async function calendarTick() {
   calendarAgain = false;
   const now = Date.now();
   try {
-    const groups = await followedGroups();
+    const settings0 = await getSettings();
+    // mode otaku : seuls les animés sont suivis (pas de recherche des séries sur TVmaze)
+    const groups = (await followedGroups()).filter((g) => !settings0.otaku || g.anime);
     const [ids, media, crEps, tvShows, settings] = await Promise.all([getLocal('aniIds', {}), getLocal('aniMedia', {}), getLocal('crEpisodes', {}), getLocal('tvShows', {}), getSettings()]);
     // 0. animés pas reconnus par leur titre : retrouvés par le lien Crunchyroll / ADN des animés de la saison
     const unknown = groups.filter((g) => g.anime && !g.want && !(ids[g.key] && (ids[g.key].id || ids[g.key].manual)));
@@ -1723,7 +1725,10 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       }
 
       case 'getStats': {
-        const entries = await getEntries();
+        const st0 = await getSettings();
+        const genres0 = st0.otaku ? await getLocal('genres', {}) : null;
+        // mode otaku : les chiffres du popup ne comptent que les animés
+        const entries = st0.otaku ? Object.fromEntries(Object.entries(await getEntries()).filter(([, e]) => e.platform === 'crunchyroll' || e.platform === 'adn' || ((genres0[seriesKey(e)] || {}).genres || []).includes('Animé'))) : await getEntries();
         const counts = {};
         const series = new Set();
         let secs = 0, last = null;

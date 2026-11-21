@@ -1,6 +1,8 @@
 // tsukiboshi — Calendrier des sorties : VO, VOSTFR et VF des épisodes des séries en cours
 import { langFilter, weekOf } from '../lib/calendar.js';
 import { initLayout } from '../lib/layout.js';
+import { otakuMode, watchOtaku, otakuBadge, isAnimeTitle } from '../lib/otaku.js';
+const OTAKU = await otakuMode();
 
 
 const $ = (id) => document.getElementById(id);
@@ -15,7 +17,11 @@ let data = { items: [], missing: [], art: {}, meta: {}, shows: {}, lang: 'both',
 let week = weekOf(Date.now());
 
 async function load() {
-  const r = await chrome.storage.local.get(['calendar', 'art', 'meta', 'shows', 'settings', 'entries']);
+  const r = await chrome.storage.local.get(['calendar', 'art', 'meta', 'shows', 'settings', 'entries', 'genres']);
+  if (OTAKU && r.calendar) {
+    const keep = (it) => isAnimeTitle(it.platform, it.key, r.genres);
+    r.calendar = { ...r.calendar, items: (r.calendar.items || []).filter(keep), missing: (r.calendar.missing || []).filter(keep) };
+  }
   data = { items: (r.calendar && r.calendar.items) || [], missing: (r.calendar && r.calendar.missing) || [], art: r.art || {}, meta: r.meta || {}, shows: r.shows || {}, lang: (r.settings && r.settings.lang) || 'both', entries: r.entries || {} };
   render();
 }
@@ -107,7 +113,8 @@ chrome.storage.onChanged.addListener((c, area) => { if (area === 'local' && (c.c
 chrome.runtime.sendMessage({ type: 'calendarKick' }).catch(() => {});
 load();
 
-initLayout();
+initLayout().then(() => otakuBadge(OTAKU));
+watchOtaku(OTAKU);
 
 // ---------- séries suivies sans dates : les relier à la bonne fiche AniList ----------
 const PLAT = { netflix: 'Netflix', crunchyroll: 'Crunchyroll', adn: 'ADN', disney: 'Disney+', prime: 'Prime Video' };

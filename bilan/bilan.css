@@ -155,3 +155,6 @@ main { max-width: 1180px; margin: 0 auto; padding: 20px 32px 64px; display: grid
   .tabs::-webkit-scrollbar { display: none; }
   .tabs a { flex: none; }
 }
+
+.otaku-badge { flex: none; height: 30px; padding: 0 10px; margin-left: 6px; border-radius: 99px; border: 1px solid rgba(244, 117, 33, .55); background: rgba(244, 117, 33, .12); color: #ffb37a; font: 600 12px 'Inter', sans-serif; cursor: pointer; white-space: nowrap; }
+@media (max-width: 720px) { .otaku-badge { font-size: 0; width: 30px; padding: 0; } .otaku-badge::before { content: '🎌'; font-size: 14px; } }

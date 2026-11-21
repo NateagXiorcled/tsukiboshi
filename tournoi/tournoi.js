@@ -1,5 +1,6 @@
 import { showActiveTab } from '../lib/layout.js';
 // tsukiboshi — Tournoi : tes titres de la semaine, du mois ou de l'année s'affrontent en duels
+import { otakuMode, watchOtaku, otakuBadge, isAnimeEntry } from '../lib/otaku.js';
 import { participants, periodRange, periodId, periodLabel, roundName, tierList, megaRound, monthChampions, allRound, packRounds, unpackRounds } from '../lib/tournament.js';
 
 const PLATFORMS = { netflix: 'Netflix', crunchyroll: 'Crunchyroll', adn: 'ADN', disney: 'Disney+', prime: 'Prime Video' };
@@ -24,7 +25,9 @@ function visual(p) {
 const facts = (p) => [p.movie ? 'Film' : `${p.eps} ép.`, fmtH(p.secs), PLATFORMS[p.platform]].filter(Boolean).join(' · ');
 
 async function load() {
-  const r = await chrome.storage.local.get(['entries', 'art', 'meta', 'shows', 'tournaments', 'tourneyDraft']);
+  const r = await chrome.storage.local.get(['entries', 'art', 'meta', 'shows', 'tournaments', 'tourneyDraft', 'genres', 'settings']);
+  const otaku = !!(r.settings || {}).otaku;
+  if (otaku) r.entries = Object.fromEntries(Object.entries(r.entries || {}).filter(([, e]) => isAnimeEntry(e, r.genres)));
   draft = r.tourneyDraft || null;
   data = { entries: Object.values(r.entries || {}), art: r.art || {}, meta: r.meta || {}, shows: r.shows || {}, tournaments: r.tournaments || [] };
 }
@@ -463,3 +466,4 @@ if (['week', 'month', 'year'].includes(h) && participants(data.entries, periodRa
 else if (h === 'mega' && megaList(megaYear()).length >= 4) start('mega');
 
 showActiveTab();
+otakuMode().then((on) => { otakuBadge(on); watchOtaku(on); });

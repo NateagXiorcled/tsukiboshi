@@ -1,4 +1,4 @@
-# Guide complet — tsukiboshi 月星 (v5.15)
+# Guide complet — tsukiboshi 月星 (v5.16)
 
 Plateformes : Netflix, Crunchyroll, ADN, Disney+, Prime Video.
 Fonctionne avec n'importe quel compte : l'extension utilise le compte connecté dans Chrome.
@@ -142,6 +142,9 @@ Onglet **Bilan** en haut de Ma liste : par année ou depuis le début.
 - **Résumé** : totaux par plateforme.
 
 Les doublons (même épisode vu en direct puis retrouvé dans l'historique) sont fusionnés automatiquement.
+
+## Nouveautés 5.16
+- **🎌 Mode otaku** (réglages du popup) : l'application ne montre plus que les animés, partout : Ma liste, Calendrier, Tournoi, Bilan et chiffres du popup. Un animé = Crunchyroll, ADN, ou un titre d'une autre plateforme reconnu comme « Animé ». Les séries et films restent enregistrés (et dans l'Excel) : décoche le mode, ou clique sur le badge « 🎌 Mode otaku » en haut des pages, pour tout retrouver.
 
 ## Nouveautés 5.15
 - **Tri par note** dans les deux sens.
