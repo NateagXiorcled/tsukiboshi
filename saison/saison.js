@@ -1,4 +1,4 @@
-import { otakuMode, watchOtaku, otakuBadge } from '../lib/otaku.js';
+import { otakuMode, watchOtaku, otakuBadge, isAnimeTitle } from '../lib/otaku.js';
 // tsukiboshi — calendrier saisonnier : tous les animés d'une saison (AniList), avec « Je veux voir »
 import { frenchGenres } from '../lib/artwork.js';
 import { platformOfLink, seasonOf, shiftSeason } from '../lib/anilist.js';
@@ -25,11 +25,12 @@ let mine = { seen: new Set(), titles: new Set(), want: new Set() };
 
 let followed = []; // séries que tu suis et qui sortent en ce moment (calendrier)
 async function loadMine() {
-  const r = await chrome.storage.local.get(['entries', 'aniIds', 'wishlist', 'calendar', 'art', 'meta', 'shows']);
+  const r = await chrome.storage.local.get(['entries', 'aniIds', 'wishlist', 'calendar', 'art', 'meta', 'shows', 'genres']);
   // tes séries qui ont une sortie ces 7 derniers / 14 prochains jours (Crunchyroll, ADN… même absentes d'AniList)
   const now = Date.now(), DAY = 864e5, byKey = new Map();
   for (const it of (r.calendar && r.calendar.items) || []) {
     if (!it.key || it.at < now - 7 * DAY || it.at > now + 14 * DAY) continue;
+    if (!isAnimeTitle(it.platform, it.key, r.genres || {})) continue; // page des animés : pas les séries Netflix / Prime
     const cur = byKey.get(it.key);
     const future = it.at >= now - 3 * 3600e3;
     if (!cur || (future && (!cur.future || it.at < cur.at)) || (!future && !cur.future && it.at > cur.at)) byKey.set(it.key, { ...it, future });
