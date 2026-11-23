@@ -307,7 +307,7 @@ function card(s) {
   return `<article class="card${sel && sel.has(s.key) ? ' picked' : ''}" tabindex="0" data-key="${esc(s.key)}"${sel ? ` aria-pressed="${sel.has(s.key)}"` : ''}>
     <div class="thumb${isHorizontal() ? ' wide' : ''}">${isHorizontal() ? wideVisual(s) : visual(s)}<span class="badge" style="--s:${st.color}">${st.label}</span>${s.fav ? `<span class="fav-mark" title="Favori">${HEART}</span>` : ''}${bar}</div>
     <div class="meta">
-      <div class="c-platform">${(s.platforms || [s.platform]).map((p) => `<span class="dot" style="background:${COLORS[p]}"></span>`).join('')}${(s.platforms || [s.platform]).map((p) => PLATFORMS[p]).join(' + ')}${count}</div>
+      <div class="c-platform">${(s.platforms || [s.platform]).map((p) => `<span class="dot" style="background:${COLORS[p]}"></span>`).join('')}<span class="c-pn">${(s.platforms || [s.platform]).map((p) => PLATFORMS[p]).join(' + ')}${count}</span></div>
       <div class="c-title">${esc(s.title)}</div>
       ${s.rating ? `<div class="c-stars" aria-label="Ma note : ${s.rating} sur 5">${[1, 2, 3, 4, 5].map((n) => `<i class="${n <= s.rating ? 'on' : ''}">${STAR}</i>`).join('')}</div>` : ''}
       <div class="c-where">${esc(where)}</div>
