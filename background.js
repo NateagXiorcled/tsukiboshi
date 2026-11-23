@@ -1,5 +1,5 @@
 import { buildXlsx } from './xlsx.js';
-import { seriesProgress } from './lib/progress.js';
+import { seriesProgress, airingKeys, withAiring } from './lib/progress.js';
 import { bestArtwork, searchArtwork, sourceStats, testSources, genresFor } from './lib/artwork.js';
 import { findAnimeIds, fetchMedia, searchAnime, trendingAnime, fetchAiring, seasonAnime, seasonOf, shiftSeason, platformOfLink, AniLimit } from './lib/anilist.js';
 import { buildCalendar } from './lib/calendar.js';
@@ -242,15 +242,15 @@ const byDateDesc = (a, b) => (b.date ?? -Infinity) - (a.date ?? -Infinity);
 
 export const STATUS_LABEL = { progress: 'En cours', done: 'Vu', list: 'Ajouté à la liste', dropped: 'Abandonné' };
 // Statut d'une série : choix manuel dans « Ma liste », sinon film = Vu, série = En cours
-export function showStatus(key, items, shows, meta) {
+export function showStatus(key, items, shows, meta, airing = new Set()) {
   const s = shows && shows[key] && shows[key].status;
   if (s) return s;
   if (items.every((e) => !e.episode)) return 'done';
-  const p = meta && meta[key] ? seriesProgress(items, meta[key]) : null;
+  const p = meta && meta[key] ? seriesProgress(items, withAiring(meta[key], airing.has(key))) : null;
   return p && p.complete ? 'done' : 'progress';
 }
 
-export function buildSheets(entries, shows = {}, meta = {}, genres = {}) {
+export function buildSheets(entries, shows = {}, meta = {}, genres = {}, airing = new Set()) {
   const list = Object.values(entries).sort(byDateDesc);
   const sheets = [];
 
@@ -325,8 +325,8 @@ export function buildSheets(entries, shows = {}, meta = {}, genres = {}) {
     rows: gl.map((g) => [
       g.head.title,
       PLATFORMS[g.head.platform],
-      STATUS_LABEL[showStatus(seriesKey(g.head), g.items, shows, meta)],
-      (() => { const p = meta[seriesKey(g.head)] && seriesProgress(g.items, meta[seriesKey(g.head)]); return p ? `${p.watched} / ${p.total}` : null; })(),
+      STATUS_LABEL[showStatus(seriesKey(g.head), g.items, shows, meta, airing)],
+      (() => { const k = seriesKey(g.head); const p = meta[k] && seriesProgress(g.items, withAiring(meta[k], airing.has(k))); return p ? `${p.watched} / ${p.total}${p.upToDate ? ' (à jour)' : ''}` : null; })(),
       g.episodes,
       g.items.length,
       g.first ? { date: g.first } : null,
@@ -392,7 +392,8 @@ export function buildSheets(entries, shows = {}, meta = {}, genres = {}) {
 // Téléchargement discret : pas de bulle de téléchargement, et retiré de la liste des téléchargements
 async function exportExcel() {
   const entries = await getEntries();
-  const bytes = await buildXlsx(buildSheets(entries, await getLocal('shows', {}), await getLocal('meta', {}), await getLocal('genres', {})));
+  const airing = airingKeys(await chrome.storage.local.get(['calendar', 'crEpisodes', 'aniIds', 'aniMedia']));
+  const bytes = await buildXlsx(buildSheets(entries, await getLocal('shows', {}), await getLocal('meta', {}), await getLocal('genres', {}), airing));
   const url = 'data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,' + toBase64(bytes);
 
   let hidden = false;

@@ -40,13 +40,17 @@
         <option value="score">Mieux notés</option>
       </select>
     </div>
+    <section class="followed" id="followed" hidden>
+      <h2 class="row-title">Tes séries en cours <span class="row-sub">que tu suis cette saison, absentes de la liste AniList ci-dessous</span></h2>
+      <div class="grid" id="followedGrid"></div>
+    </section>
     <section class="grid" id="grid" aria-live="polite"></section>
     <div class="empty" id="empty" hidden>
       <img src="../icons/logo.svg" alt="">
       <h2 id="emptyTitle">Rien pour cette saison</h2>
       <p id="emptyText"></p>
     </div>
-    <p class="s-note">Données AniList. « Je veux voir » ajoute l'animé à Ma liste et ses épisodes au Calendrier dès que les dates sont annoncées.</p>
+    <p class="s-note">Données AniList (qui ne connaît pas tous les animés diffusés en France : tes séries suivies absentes de sa liste apparaissent en haut). « Je veux voir » ajoute l'animé à Ma liste et ses épisodes au Calendrier dès que les dates sont annoncées.</p>
   </main>
   <div class="detail" id="detail" hidden><iframe id="detailFrame" title="Fiche de l'animé" src="about:blank"></iframe></div>
   <script type="module" src="saison.js"></script>

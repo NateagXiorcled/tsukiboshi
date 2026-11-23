@@ -146,6 +146,9 @@ Les doublons (même épisode vu en direct puis retrouvé dans l'historique) sont
 ## Nouveautés 5.16
 - **🎌 Mode otaku** (réglages du popup, ou la coche en haut à droite de Ma liste : les deux sont reliées) : l'application ne montre plus que les animés, partout : Ma liste, Calendrier, Tournoi, Bilan et chiffres du popup. Un animé = Crunchyroll, ADN, ou un titre d'une autre plateforme reconnu comme « Animé ». Les séries et films restent enregistrés (et dans l'Excel) : décoche le mode, ou clique sur le badge « 🎌 Mode otaku » en haut des pages, pour tout retrouver.
 - **Une seule fiche par animé** dans Ma liste : les saisons (« Black Clover » + « Black Clover Season 2 », ou des saisons au titre différent reconnues par AniList) et le même animé vu sur plusieurs plateformes (Crunchyroll + ADN) sont réunis. Note, statut, avis et favori s'appliquent à toutes les fiches réunies.
+- **Statut « Vu » à tort corrigé** : une série encore en diffusion dont tu as vu tous les épisodes déjà sortis reste « En cours · À jour » (Crunchyroll ne compte que les épisodes sortis, ce qui faisait croire à une série finie).
+- **Calendrier** : les séries Crunchyroll absentes d'AniList (ex. Dreamland) ont leurs prochains épisodes estimés, même si la dernière synchro date de plusieurs semaines.
+- **Saisons** : AniList ne connaît pas tous les animés diffusés en France. Tes séries suivies qui sortent en ce moment et qui manquent à sa liste apparaissent en haut, dans « Tes séries en cours ».
 
 ## Nouveautés 5.15
 - **Tri par note** dans les deux sens.

@@ -1,7 +1,7 @@
 // erreurs de la page → page de diagnostic
 window.addEventListener('error', (e) => chrome.runtime.sendMessage({ type: 'logError', where: 'Ma liste', msg: (e.error && e.error.stack) || e.message }).catch(() => {}));
 window.addEventListener('unhandledrejection', (e) => chrome.runtime.sendMessage({ type: 'logError', where: 'Ma liste', msg: String((e.reason && e.reason.stack) || e.reason) }).catch(() => {}));
-import { seriesProgress } from '../lib/progress.js';
+import { seriesProgress, airingKeys, withAiring } from '../lib/progress.js';
 import { frenchGenres } from '../lib/artwork.js';
 import { platformOfLink } from '../lib/anilist.js';
 import { installNetflixLinks } from '../lib/nflink.js';
@@ -29,6 +29,7 @@ const fmtN = (n) => n.toLocaleString('fr-FR');
 
 let data = { entries: {}, shows: {}, wishlist: {}, meta: {}, art: {}, newEps: {}, genres: {}, suites: [] };
 let shows = [];
+let airing = new Set(); // séries encore en diffusion (jamais « Vu » automatiquement)
 let sel = null; // sélection multiple : Set des titres choisis quand le mode est actif
 const view = { status: 'all', platform: 'all', kind: 'all', q: '', sort: 'recent', genre: '', decade: '' };
 // type de titre : animé, série ou film (sous-onglets)
@@ -38,7 +39,8 @@ let openKey = null;
 
 // ---------- Données ----------
 async function load() {
-  const r = await chrome.storage.local.get(['entries', 'shows', 'wishlist', 'meta', 'art', 'newEps', 'genres', 'suites', 'aniIds', 'aniMedia']);
+  const r = await chrome.storage.local.get(['entries', 'shows', 'wishlist', 'meta', 'art', 'newEps', 'genres', 'suites', 'calendar', 'crEpisodes', 'aniIds', 'aniMedia']);
+  airing = airingKeys(r);
   // rawShows = choix manuels tels qu'enregistrés (un par titre) ; shows = vue regroupée (un par animé, voir buildShows)
   data = { entries: r.entries || {}, rawShows: r.shows || {}, shows: { ...(r.shows || {}) }, wishlist: r.wishlist || {}, meta: r.meta || {}, art: r.art || {}, newEps: { ...(r.newEps || {}) }, genres: r.genres || {}, suites: (r.suites && r.suites.list) || [], aniIds: r.aniIds || {}, aniMedia: r.aniMedia || {} };
   shows = buildShows();
@@ -99,7 +101,7 @@ function buildShows() {
     s.poster = s.custom || (s.meta && s.meta.poster) || (s.art && s.art.poster) || '';
     s.wide = (s.meta && s.meta.wide) || (s.art && s.art.wide) || '';
     // progression : la saison dont viennent les infos Crunchyroll (la dernière regardée en priorité)
-    s.prog = s.meta && !s.isMovie ? seriesProgress(metaOf.items, s.meta) : null;
+    s.prog = s.meta && !s.isMovie ? seriesProgress(metaOf.items, withAiring(s.meta, airing.has(metaOf.key))) : null;
     s.auto = !s.items.length ? 'list' : s.isMovie || (s.prog && s.prog.complete) ? 'done' : 'progress';
     s.status = (data.shows[s.key] && data.shows[s.key].status) || s.auto;
     const gen = members.map((m) => data.genres[m.key]).filter(Boolean);
@@ -1051,7 +1053,7 @@ chrome.storage.onChanged.addListener((changes, area) => {
     renderSuites();
     return;
   }
-  if (!(changes.entries || changes.shows || changes.wishlist || changes.meta || changes.art || changes.newEps)) return;
+  if (!(changes.entries || changes.shows || changes.wishlist || changes.meta || changes.art || changes.newEps || changes.calendar || changes.crEpisodes)) return;
   // nouvelles affiches seulement : on met à jour les vignettes concernées, sans tout reconstruire
   if (changes.art && !(changes.entries || changes.shows || changes.wishlist || changes.meta || changes.newEps)) {
     data.art = changes.art.newValue || {};

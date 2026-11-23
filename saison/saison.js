@@ -23,8 +23,20 @@ if (fromHash) { view.year = +fromHash[1]; view.season = fromHash[2]; }
 let list = [];
 let mine = { seen: new Set(), titles: new Set(), want: new Set() };
 
+let followed = []; // séries que tu suis et qui sortent en ce moment (calendrier)
 async function loadMine() {
-  const r = await chrome.storage.local.get(['entries', 'aniIds', 'wishlist']);
+  const r = await chrome.storage.local.get(['entries', 'aniIds', 'wishlist', 'calendar', 'art', 'meta', 'shows']);
+  // tes séries qui ont une sortie ces 7 derniers / 14 prochains jours (Crunchyroll, ADN… même absentes d'AniList)
+  const now = Date.now(), DAY = 864e5, byKey = new Map();
+  for (const it of (r.calendar && r.calendar.items) || []) {
+    if (!it.key || it.at < now - 7 * DAY || it.at > now + 14 * DAY) continue;
+    const cur = byKey.get(it.key);
+    const future = it.at >= now - 3 * 3600e3;
+    if (!cur || (future && (!cur.future || it.at < cur.at)) || (!future && !cur.future && it.at > cur.at)) byKey.set(it.key, { ...it, future });
+  }
+  const poster = (k) => ((r.shows || {})[k] || {}).poster || ((r.meta || {})[k] || {}).poster || ((r.art || {})[k] || {}).poster || '';
+  followed = [...byKey.values()].map((it) => ({ key: it.key, title: it.title, platform: it.platform, ep: it.ep, season: it.season, at: it.at, kind: it.kind, estimated: it.estimated, future: it.future, cover: poster(it.key), aniId: ((r.aniIds || {})[it.key] || {}).id || null }))
+    .sort((a, b) => (b.future - a.future) || a.at - b.at);
   const keys = new Set(), titles = new Set();
   for (const e of Object.values(r.entries || {})) { keys.add(`${e.platform}|${norm(e.title)}`); titles.add(norm(e.title)); }
   const seen = new Set();
@@ -87,8 +99,27 @@ function renderChips() {
     ...present.map((p) => `<button class="chip ${view.platform === p ? 'on' : ''}" data-plat="${p}"><span class="dot" style="background:${COLORS[p]}"></span>${PLATFORMS[p]}</button>`)].join('') : '';
 }
 
+// tes séries en cours absentes de la liste AniList de la saison (AniList ne connaît pas tous les animés diffusés en France)
+function renderFollowed() {
+  const cur = seasonOf();
+  const ids = new Set(list.map((m) => m.id)), names = new Set(list.flatMap((m) => (m.titles || [m.title]).map(norm)));
+  const extra = cur.season === view.season && cur.year === view.year ? followed.filter((f) => !(f.aniId && ids.has(f.aniId)) && !names.has(norm(f.title))) : [];
+  $('followed').hidden = !extra.length;
+  $('followedGrid').innerHTML = extra.map((f) => {
+    const d = new Date(f.at);
+    const when = `${f.future ? '' : 'Sorti '}${f.estimated ? '≈ ' : ''}${d.toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' })}${f.estimated ? '' : ' à ' + d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}`;
+    return `<a class="card" href="../list/list.html#${encodeURIComponent(f.key)}">
+      <div class="thumb${isHorizontal() ? ' wide' : ''}">${img(f.cover, f.title, isHorizontal() ? 'fit' : '')}<span class="badge airing">En cours</span></div>
+      <div class="meta">
+        <div class="c-platform">${esc(PLATFORMS[f.platform] || f.platform)}</div>
+        <div class="c-title">${esc(f.title)}</div>
+        <div class="c-when">Ép. ${f.season ? `S${f.season} ` : ''}${f.ep} · ${esc(when)}</div>
+      </div></a>`;
+  }).join('');
+}
 function render() {
   renderChips();
+  renderFollowed();
   const items = filtered();
   $('grid').innerHTML = items.map(card).join('');
   $('empty').hidden = items.length > 0 || !list.length;
